@@ -207,7 +207,9 @@ export const api = {
 
   // 2. FIX THIS: Remove the duplicate/crashing !res.ok block
   async createMemory(payload: MemoryCreatePayload) {
-    const res = await apiFetch("/api/memories/", {
+    // No trailing slash: the backend route is POST /api/memories (no slash),
+    // and a trailing slash here only works by riding a 307 redirect.
+    const res = await apiFetch("/api/memories", {
       method: "POST",
       body: JSON.stringify(payload),
     });
@@ -219,11 +221,17 @@ export const api = {
 
     return res.json();
   },
-  async deleteMemory(memoryId: string) {
-    const res = await apiFetch(`/api/memories/${memoryId}/`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to delete memory");
+  // Backend route is DELETE /api/memories/memoirs/{memoir_id}/memories/{memory_id}
+  // -- memoir_id is required in the path, there is no bare /api/memories/{id}/ route.
+  async deleteMemory(memoirId: string, memoryId: string) {
+    const res = await apiFetch(
+      `/api/memories/memoirs/${memoirId}/memories/${memoryId}`,
+      { method: "DELETE" },
+    );
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to delete memory"));
+    }
     return res.json();
   },
 
@@ -327,17 +335,30 @@ export const api = {
 
     return res.json();
   },
-  // Search
+  // Search -- the real route is the top-level /api/search/ router with
+  // memoir_id as a query param, not nested under /api/memoirs/{id}/search.
   async searchMemories(memoirId: string, query: string) {
     const res = await apiFetch(
-      `/api/memoirs/${memoirId}/search?q=${encodeURIComponent(query)}`,
-      {
-        method: "GET",
-      },
+      `/api/search/?memoir_id=${encodeURIComponent(memoirId)}&q=${encodeURIComponent(query)}`,
+      { method: "GET" },
     );
     if (!res.ok) throw new Error("Failed to search archive");
     const json = await res.json();
     return json.data || json;
+  },
+
+  // Publishing -- required once before a share link can be created (the
+  // backend 409s on createShareLink otherwise). Idempotent server-side, so
+  // it's safe to call this on every "copy link" click.
+  async publishMemoir(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/publish`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to publish memoir"));
+    }
+    return (await res.json()).data;
   },
 
   // Share Link Generation
@@ -369,12 +390,28 @@ export const api = {
   },
 
   // AI Organization & Chapters
+  //
+  // /organize is async on the backend: it returns 202 immediately with no
+  // chapter data (the model call takes 10-20s and runs in the background).
+  // There is nothing to unwrap here -- callers must poll getOrganizeStatus()
+  // until it reports 'ready', then call getChapters() to load the result.
   async generateTimeline(memoirId: string) {
     const res = await apiFetch(`/api/memoirs/${memoirId}/organize`, {
       method: "POST",
     });
-    if (!res.ok) throw new Error("Failed to generate timeline");
-    return (await res.json()).data;
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to start organizing"));
+    }
+    return res.json();
+  },
+
+  async getOrganizeStatus(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/organize/status`, {
+      method: "GET",
+    });
+    if (!res.ok) throw new Error("Failed to check organize status");
+    return res.json();
   },
 
   async getChapters(memoirId: string) {
@@ -396,13 +433,22 @@ export const api = {
     if (!res.ok) throw new Error("Failed to rename chapter");
     return (await res.json()).data;
   },
-  
-  async moveMemory(memoryId: string, chapterId: string) {
-    const res = await apiFetch(`/api/memories/${memoryId}/move`, {
-      method: "PATCH",
-      body: JSON.stringify({ chapter_id: chapterId }),
-    });
-    if (!res.ok) throw new Error("Failed to move memory");
+
+  // Real route is PUT /api/memoirs/{memoir_id}/memories/{memory_id}/move
+  // with body { new_chapter_id }, not PATCH /api/memories/{id}/move with
+  // { chapter_id } -- memoir_id is required (owner-only, 404 if not yours).
+  async moveMemory(memoirId: string, memoryId: string, chapterId: string) {
+    const res = await apiFetch(
+      `/api/memoirs/${memoirId}/memories/${memoryId}/move`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ new_chapter_id: chapterId }),
+      },
+    );
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to move memory"));
+    }
     return (await res.json()).data;
   },
 
