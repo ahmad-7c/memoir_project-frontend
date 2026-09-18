@@ -36,46 +36,87 @@ export default function OwnerDashboard() {
   const [chapters, setChapters] = useState<any[]>([]);
   const [isGeneratingChapters, setIsGeneratingChapters] = useState(false);
 
-  // 1. Resolve active memoir details and owner profile from localStorage on mount
+  // 1. Resolve active memoir details and owner profile.
+  //
+  // localStorage's "active_memoir" is only ever written by the login/signup
+  // flow -- if the browser previously logged in as a different account (a
+  // very normal thing to do while testing) and never went through that flow
+  // again, this key silently keeps pointing at a memoir the *current*
+  // access_token's user doesn't own. Every write against it (this onboarding
+  // persist, capturing a memory, etc.) then 403s with "not an active
+  // participant" -- correctly, since the backend is right to refuse it, but
+  // confusingly, since nothing here ever explained why. Cross-checking
+  // against GET /api/memoirs/ (the authoritative list for whoever the
+  // current token actually belongs to) and correcting the cached value is
+  // what actually fixes that, rather than just hiding the symptom.
   useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const storedUser = localStorage.getItem("user_profile") || localStorage.getItem("user_name");
-        if (storedUser) {
-          try {
-            const userParsed = JSON.parse(storedUser);
-            setOwnerName(userParsed.name || userParsed.fullName || storedUser);
-          } catch {
-            setOwnerName(storedUser);
-          }
+    try {
+      const storedUser = localStorage.getItem("user_profile") || localStorage.getItem("user_name");
+      if (storedUser) {
+        try {
+          const userParsed = JSON.parse(storedUser);
+          setOwnerName(userParsed.name || userParsed.fullName || storedUser);
+        } catch {
+          setOwnerName(storedUser);
         }
-      } catch (e) {
-        console.error("Failed to load user profile", e);
       }
+    } catch (e) {
+      console.error("Failed to load user profile", e);
+    }
 
+    const applyMemoir = (data: Record<string, unknown>) => {
+      if (typeof data.id === "string") setMemoirId(data.id);
+      if (typeof data.subject_name === "string") setName(data.subject_name);
+      else if (typeof data.name === "string") setName(data.name);
+
+      if (typeof data.dates === "string") {
+        setDates(data.dates);
+      } else if (data.subject_born_on || data.subject_died_on || data.dob || data.dod) {
+        const born = (data.subject_born_on || data.dob) as string | undefined;
+        const died = (data.subject_died_on || data.dod) as string | undefined;
+        const dobYear = born ? new Date(born).getFullYear() : "";
+        const dodYear = died ? new Date(died).getFullYear() : "Present";
+        if (dobYear || dodYear !== "Present") setDates(`${dobYear} — ${dodYear}`);
+      }
+    };
+
+    const resolveMemoir = async () => {
+      let cached: Record<string, unknown> | null = null;
       try {
         const stored = localStorage.getItem("active_memoir");
         if (stored) {
           const parsed = JSON.parse(stored);
-          const data = parsed.data || parsed;
-          
-          if (data.id) setMemoirId(data.id);
-          if (data.name) setName(data.name);
-          
-          if (data.dates) {
-            setDates(data.dates);
-          } else if (data.dob || data.dod) {
-            const dobYear = data.dob ? new Date(data.dob).getFullYear() : "";
-            const dodYear = data.dod ? new Date(data.dod).getFullYear() : "Present";
-            if (dobYear || dodYear !== "Present") setDates(`${dobYear} — ${dodYear}`);
-          }
+          cached = (parsed.data || parsed) as Record<string, unknown>;
         }
       } catch (e) {
-        console.error("Could not resolve active_memoir from localStorage", e);
+        console.error("Could not parse cached active_memoir", e);
       }
-    }, 0);
 
-    return () => clearTimeout(timer); 
+      try {
+        const memoirs = await api.getUserMemoirs();
+        const cachedId = cached?.id as string | undefined;
+        const stillValid = cachedId && memoirs.some((m: { id: string }) => m.id === cachedId);
+
+        if (stillValid && cached) {
+          applyMemoir(cached);
+        } else if (memoirs.length > 0) {
+          // Cached memoir belongs to a different account (or none was cached) --
+          // fall back to whatever the current token's user actually owns.
+          localStorage.setItem("active_memoir", JSON.stringify(memoirs[0]));
+          applyMemoir(memoirs[0]);
+        } else if (cached) {
+          // Couldn't confirm one way or the other (e.g. the list call itself
+          // failed); keep showing the cached memoir rather than blanking the
+          // page, but do not treat it as verified.
+          applyMemoir(cached);
+        }
+      } catch (e) {
+        console.error("Could not verify active memoir against the current account", e);
+        if (cached) applyMemoir(cached);
+      }
+    };
+
+    resolveMemoir();
   }, []);
 
   // 2. Fetch real data using the hook
@@ -88,10 +129,20 @@ export default function OwnerDashboard() {
       const savedMemory = sessionStorage.getItem("onboarding_initial_memory");
       if (savedMemory) {
         try {
-          await api.createMemory(memoirId, { title: "First Memory", body_text: savedMemory, kind: "text" });
+          await api.createMemory({
+            memoir_id: memoirId,
+            title: "First Memory",
+            body_text: savedMemory,
+            status: "submitted",
+          });
           sessionStorage.removeItem("onboarding_initial_memory");
           refreshFeed();
         } catch (e) {
+          // Clear the flag even on failure -- this is a best-effort, one-shot
+          // persist. Without this, a failure here (stale memoir, network
+          // blip, anything) retries on every remount forever, silently
+          // spamming the same error indefinitely instead of surfacing once.
+          sessionStorage.removeItem("onboarding_initial_memory");
           console.error("Failed to save onboarding memory to database:", e);
         }
       }
