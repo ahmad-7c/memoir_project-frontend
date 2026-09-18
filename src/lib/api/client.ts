@@ -1,24 +1,19 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-function getAuthHeaders(): Record<string, string> {
-  const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("access_token") || localStorage.getItem("token")
-      : null;
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 // Centralized wrapper to make sure every request sent to your
 // FastAPI backend is properly formatted, secure, and pointed to the right address
+//
+// Auth is an httpOnly cookie set by the backend on login/signup -- there is
+// no token for this code to read or attach. `credentials: "include"` is what
+// makes the browser send that cookie on every request (required because
+// frontend:3000 and backend:8000 are different origins even on localhost).
 async function apiFetch(endpoint: string, options: RequestInit = {}) {
   const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
+    credentials: "include",
     headers: {
-      ...getAuthHeaders(),
+      "Content-Type": "application/json",
       ...options.headers,
     },
   });
@@ -151,6 +146,14 @@ export const api = {
       const errData: ApiErrorResponse = await res.json().catch(() => ({}));
       throw new Error(parseErrorDetail(errData, "Login failed"));
     }
+    return res.json();
+  },
+
+  // The session cookie is httpOnly -- this is the only way to end it, since
+  // frontend JS has no way to read or delete it directly.
+  async logout() {
+    const res = await apiFetch("/api/auth/logout", { method: "POST" });
+    if (!res.ok) throw new Error("Failed to log out");
     return res.json();
   },
 

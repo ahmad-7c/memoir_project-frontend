@@ -33,18 +33,13 @@ export function useAuth() {
     startAuthAction();
 
     try {
-      // 1. Authenticate the user
-      const res = await api.login({
+      // 1. Authenticate the user -- the backend sets the session as an
+      // httpOnly cookie itself; there is no token here for this code to
+      // store, only a flag confirming a session actually started.
+      await api.login({
         email: data.email,
         password: data.password,
       });
-
-      // 2. Extract and store access token
-      const accessToken = res.access_token || res.token || res.data?.access_token;
-      if (accessToken) {
-        localStorage.setItem("access_token", accessToken);
-        window.dispatchEvent(new Event("storage")); 
-      }
 
       // --- SMART MEMOIR CHECK & CREATION LOGIC ---
       try {
@@ -105,14 +100,12 @@ export function useAuth() {
         password: data.password,
       });
 
-      const accessToken = res.access_token || res.token || res.data?.access_token;
-      
-      if (accessToken) {
-        // User created and session started!
-        localStorage.setItem("access_token", accessToken);
-        window.dispatchEvent(new Event("storage"));
+      // The backend sets the session cookie itself when confirmation isn't
+      // required -- `authenticated` just tells us whether that happened, we
+      // never see or handle the token.
+      if (res.authenticated) {
         await processPendingMemoir();
-        return true; 
+        return true;
       } else {
         // FIX: Registration successful, but awaiting email verification.
         // Set success message and return FALSE so the UI does NOT redirect.
@@ -130,6 +123,28 @@ export function useAuth() {
     }
   };
 
+  // The session cookie is httpOnly -- this is the only way to end it, since
+  // there's no token in localStorage to just delete anymore. No UI currently
+  // calls this (there's no logout button in the design yet); exposed here so
+  // wiring one up later is a one-line addition, not a new auth mechanism.
+  const handleLogout = async (): Promise<void> => {
+    try {
+      await api.logout();
+    } catch (err) {
+      console.error("Logout request failed", err);
+    } finally {
+      // Everything cached here is scoped to whichever account was active --
+      // stale values are exactly what caused a previous cross-account 403
+      // (see dashboard/page.tsx's active_memoir cross-check).
+      localStorage.removeItem("active_memoir");
+      localStorage.removeItem("pending_memoir");
+      localStorage.removeItem("user_profile");
+      localStorage.removeItem("user_name");
+      sessionStorage.removeItem("onboarding_initial_memory");
+      router.push("/login");
+    }
+  };
+
   return {
     loading,
     serverError,
@@ -138,5 +153,6 @@ export function useAuth() {
     setSuccessMessage,
     handleLogin,
     handleSignup,
+    handleLogout,
   };
 }
