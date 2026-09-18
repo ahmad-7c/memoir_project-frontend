@@ -13,9 +13,15 @@ const envSchema = z.object({
     .positive()
     .default(10_000),
 
-  /** Supabase Configuration */
-  NEXT_PUBLIC_SUPABASE_URL: z.string("Must be a valid Supabase URL"),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1, "Supabase Anon Key is required"),
+  /**
+   * Nothing in this app imports supabase-js or reads these at runtime --
+   * auth is entirely backend-issued JWTs stored in localStorage (see
+   * src/lib/api/client.ts). Kept optional rather than removed in case a
+   * future feature needs direct client-side Supabase access; required
+   * would otherwise block the app from booting for no functional reason.
+   */
+  NEXT_PUBLIC_SUPABASE_URL: z.string().optional(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse({
