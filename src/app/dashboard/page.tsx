@@ -181,6 +181,9 @@ export default function OwnerDashboard() {
   const handleCopyLink = async () => {
     if (!memoirId) return;
     try {
+      // Publishing is required before a share link can be created (idempotent
+      // server-side, so this is safe to call every time, not just the first).
+      await api.publishMemoir(memoirId);
       const shareData = await api.createShareLink(memoirId);
       if (shareData && shareData.url) {
         await navigator.clipboard.writeText(shareData.url);
@@ -192,13 +195,31 @@ export default function OwnerDashboard() {
     }
   };
 
+  // /organize runs in the background (the model call takes 10-20s), so
+  // triggering it only returns a 202 -- the actual chapters have to be
+  // polled for via /organize/status, then loaded with getChapters().
   const handleGenerateTimeline = async () => {
     if (!memoirId) return;
     setIsGeneratingChapters(true);
     try {
-      const data = await api.generateTimeline(memoirId);
-      if (data) setChapters(data);
-      refreshFeed();
+      await api.generateTimeline(memoirId);
+
+      const maxAttempts = 20;
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+
+        const statusRes = await api.getOrganizeStatus(memoirId);
+        if (statusRes.status === "ready") {
+          const data = await api.getChapters(memoirId);
+          if (data) setChapters(data);
+          refreshFeed();
+          break;
+        }
+        if (statusRes.status === "failed" || statusRes.status === "stalled") {
+          console.error("Organizing failed:", statusRes.error_message);
+          break;
+        }
+      }
     } catch (e) {
       console.error("Failed to generate timeline", e);
     } finally {
@@ -217,9 +238,9 @@ export default function OwnerDashboard() {
   };
 
   const handleMemoryOptionSelect = async (action: string, memoryId: string, targetChapterId?: string) => {
-    if (action === "move" && targetChapterId) {
+    if (action === "move" && targetChapterId && memoirId) {
       try {
-        await api.moveMemory(memoryId, targetChapterId);
+        await api.moveMemory(memoirId, memoryId, targetChapterId);
         refreshFeed();
       } catch (e) {
         console.error("Failed to move memory", e);
