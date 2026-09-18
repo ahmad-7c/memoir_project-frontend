@@ -306,7 +306,13 @@ export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
         memoir_id: currentMemoirId,
         title: draft.title.trim(),
         body_text: draft.body_text ? draft.body_text.trim() : null,
-        status: "draft",
+        // "submitted" (finalized), not "draft": this form has no separate
+        // draft/finalize step, so submitting it here IS the finalization.
+        // "draft" would make the memory invisible to the share link and AI
+        // organization -- both filter on status="submitted". Must match the
+        // public.memory_status Postgres enum exactly (draft/submitted) --
+        // "saved" is not a valid value there and 500s at the DB layer.
+        status: "submitted",
         occurred_start: hasDate ? draft.occurred_start : null,
         occurred_end: hasDate ? draft.occurred_start : null,
         occurred_precision: hasDate ? "day" : null,
