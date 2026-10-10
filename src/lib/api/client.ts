@@ -1,3 +1,13 @@
+import {
+  ApplyProposalResultSchema,
+  ChapterSchema,
+  ChatResponseSchema,
+  OrganizeStatusSchema,
+  ProposalListResponseSchema,
+} from "@/features/dashboard/types/organization";
+
+import { z } from "zod";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -30,14 +40,30 @@ interface ApiErrorResponse {
   message?: string;
 }
 
-function parseErrorDetail(
+/**
+ * Renders a backend error body as one human-readable string.
+ *
+ * Exported so it can be tested directly. Its failure modes are all in the
+ * *rendered message*, not in the thrown type: an empty result shows as a toast
+ * with no text, and a FastAPI debug body shows as a file path and exception
+ * class. None of that is observable from a `rejects.toThrow()` assertion, so
+ * testing this through a rejected request would pass while the actual defect
+ * shipped.
+ */
+export function parseErrorDetail(
   errData: ApiErrorResponse | null | undefined,
   defaultMessage: string,
 ): string {
   if (!errData) return defaultMessage;
-  if (typeof errData.detail === "string") return errData.detail;
+  // Non-empty checks, not truthiness alone. `typeof detail === "string"` is true
+  // for `""`, so a backend that sends an empty detail produced a blank toast --
+  // an error the user cannot act on and cannot tell apart from a rendering bug.
+  // A message the user cannot read is strictly worse than a generic one.
+  if (typeof errData.detail === "string" && errData.detail.trim()) {
+    return errData.detail;
+  }
 
-  if (Array.isArray(errData.detail)) {
+  if (Array.isArray(errData.detail) && errData.detail.length > 0) {
     return errData.detail
       .map((err: ApiErrorDetail) => {
         const field =
@@ -47,7 +73,7 @@ function parseErrorDetail(
       .join(" | ");
   }
 
-  if (errData.message) return errData.message;
+  if (errData.message && errData.message.trim()) return errData.message;
   return defaultMessage;
 }
 
@@ -57,15 +83,34 @@ export interface SignupPayload {
   full_name: string;
 }
 
+// Union literals, not `string`. These map to Postgres enums on the server
+// (public.memoir_visibility, public.comment_policy) and are enforced there by
+// Literal types in backend/src/schemas/memoir.py. Typing them as plain `string`
+// here let a typo compile cleanly and fail as a 500 from the database.
+export type MemoirVisibility = "invited_only" | "link_with_password" | "link_public";
+export type MemoirCommentPolicy = "nobody" | "invited_only" | "anyone_who_can_view";
+export type MemoirRelationship =
+  | "self"
+  | "spouse_partner"
+  | "parent"
+  | "child"
+  | "sibling"
+  | "grandchild"
+  | "extended_family"
+  | "friend"
+  | "colleague"
+  | "neighbour"
+  | "other";
+
 export interface MemoirCreatePayload {
   subject_name: string;
   subject_born_on?: string;
   subject_died_on?: string;
   subject_is_living: boolean;
   description?: string;
-  visibility?: string;
-  comment_policy?: string;
-  relationship?: string;
+  visibility?: MemoirVisibility;
+  comment_policy?: MemoirCommentPolicy;
+  relationship?: MemoirRelationship;
 }
 
 export interface MemoryCreatePayload {
@@ -104,6 +149,7 @@ export interface CommentEntity {
   id: string;
   memoir_id: string;
   memory_id: string | null;
+  narrative_section_id?: string | null;
   media_asset_id: string | null;
   parent_comment_id: string | null;
   author_participant_id: string;
@@ -118,10 +164,149 @@ export interface CommentEntity {
 export interface CommentCreatePayload {
   memoir_id: string;
   memory_id?: string | null;
+  narrative_section_id?: string | null;
   media_asset_id?: string | null;
   author_participant_id?: string | null;
   parent_comment_id?: string | null;
   body: string;
+}
+
+export interface OwnerMemoirSummary {
+  id: string;
+  subject_name: string;
+  subject_born_on?: string | null;
+  subject_died_on?: string | null;
+  subject_is_living: boolean;
+  cover_image_url?: string | null;
+  status: "draft" | "published";
+  published_at?: string | null;
+  memory_count: number;
+  updated_at: string;
+}
+
+export interface OwnerProfile {
+  name: string;
+  email: string;
+  subscription_status: string;
+  memoirs: OwnerMemoirSummary[];
+}
+
+export type ShareLinkVisibility = "private" | "link" | "password";
+
+export interface ShareLink {
+  id: string;
+  memoir_id: string;
+  scope: string;
+  token: string;
+  url: string;
+  visibility: ShareLinkVisibility;
+  has_password: boolean;
+  can_comment: boolean;
+  created_at: string;
+  expires_at: string | null;
+  revoked_at: string | null;
+  open_count: number;
+}
+
+export interface SharedChapter {
+  id: string;
+  title: string;
+  summary: string | null;
+  sort_order: number;
+}
+
+export interface SharedNarrativeSection {
+  id: string;
+  chapter_id: string | null;
+  position: number;
+  body: string;
+  source_memory_ids: string[];
+}
+
+export interface SharedMedia {
+  id: string;
+  kind: string;
+  mime_type: string | null;
+  caption: string | null;
+  duration_ms: number | null;
+  width_px: number | null;
+  height_px: number | null;
+  playback_url: string | null;
+  transcript_text: string | null;
+}
+
+export interface SharedMemory {
+  id: string;
+  title: string | null;
+  body_text: string | null;
+  occurred_start: string | null;
+  occurred_end: string | null;
+  occurred_precision: string | null;
+  chapter_id: string | null;
+  created_at: string;
+  media: SharedMedia[];
+}
+
+export interface SharedMemoirFull {
+  id: string;
+  subject_name: string;
+  subject_born_on: string | null;
+  subject_died_on: string | null;
+  subject_is_living: boolean;
+  description: string | null;
+  can_comment: boolean;
+  chapters: SharedChapter[];
+  narrative_sections: SharedNarrativeSection[];
+  memories: SharedMemory[];
+}
+
+export interface UnlockResult {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  display_name: string;
+  can_comment: boolean;
+}
+
+export interface NarrativeSection {
+  id: string;
+  memoir_id?: string;
+  chapter_id: string | null;
+  position: number;
+  body: string;
+  body_original?: string;
+  owner_edited?: boolean;
+  source_memory_ids: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface NarrativeStatus {
+  status: "none" | "processing" | "ready" | "failed" | "stalled";
+  error_message: string | null;
+  retry_available: boolean;
+  warnings: string[];
+}
+
+export interface SourceMedia {
+  id: string;
+  kind: string;
+  mime_type: string | null;
+  caption: string | null;
+  duration_ms: number | null;
+  width_px: number | null;
+  height_px: number | null;
+  playback_url: string | null;
+  transcript_text: string | null;
+}
+
+export interface SourceMemory {
+  id: string;
+  title: string | null;
+  body_text: string | null;
+  occurred_start: string | null;
+  author_name: string | null;
+  media: SourceMedia[];
 }
 
 export const api = {
@@ -268,10 +453,12 @@ export const api = {
     return responseJson.data || responseJson;
   },
 
-  // Comments
-  async getComments(memoryId: string): Promise<CommentEntity[]> {
+  // Comments. `readerToken` is only needed on the reader share page -- the
+  // owner's own session rides the httpOnly cookie automatically.
+  async getComments(memoryId: string, readerToken?: string): Promise<CommentEntity[]> {
     const res = await apiFetch(`/api/comments/?memory_id=${memoryId}`, {
       method: "GET",
+      headers: readerToken ? { Authorization: `Bearer ${readerToken}` } : {},
     });
 
     if (res.status === 404) {
@@ -287,10 +474,31 @@ export const api = {
     return Array.isArray(data) ? data : data.comments || [];
   },
 
-  async createComment(payload: CommentCreatePayload): Promise<CommentEntity> {
+  // Owner-only moderation.
+  async hideComment(commentId: string, memoirId: string) {
+    const res = await apiFetch(`/api/comments/${commentId}/hide?memoir_id=${memoirId}`, {
+      method: "PATCH",
+    });
+    if (!res.ok) throw new Error("Failed to hide comment.");
+    return res.json();
+  },
+
+  async deleteComment(commentId: string, memoirId: string) {
+    const res = await apiFetch(`/api/comments/${commentId}?memoir_id=${memoirId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to delete comment.");
+    return res.json();
+  },
+
+  async createComment(
+    payload: CommentCreatePayload,
+    readerToken?: string,
+  ): Promise<CommentEntity> {
     const res = await apiFetch("/api/comments/", {
       method: "POST",
       body: JSON.stringify(payload),
+      headers: readerToken ? { Authorization: `Bearer ${readerToken}` } : {},
     });
 
     if (!res.ok) {
@@ -356,7 +564,15 @@ export const api = {
     });
     if (!res.ok) {
       const errData: ApiErrorResponse = await res.json().catch(() => ({}));
-      throw new Error(parseErrorDetail(errData, "Failed to publish memoir"));
+      // 409 means "already published" (irreversible, so a second attempt is
+      // rejected rather than treated as a no-op repeat) or "no memories yet" --
+      // the status lets the caller tell those apart from a real failure and
+      // react accordingly (e.g. fetch the existing share link instead of
+      // showing an error for the already-published case).
+      const message = parseErrorDetail(errData, "Failed to publish memoir");
+      const err = new Error(message) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
     }
     return (await res.json()).data;
   },
@@ -374,19 +590,300 @@ export const api = {
     // Returns the exact ShareLinkResponse data from backend
     return json.data || json;
   },
-  async getSharedMemoir(token: string) {
+  // Set/replace the share link's unlock password, or change its visibility.
+  // `clear_password` removes the password requirement entirely.
+  async updateShareLink(
+    memoirId: string,
+    payload: {
+      password?: string;
+      clear_password?: boolean;
+      visibility?: ShareLinkVisibility;
+      can_comment?: boolean;
+    },
+  ): Promise<ShareLink> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/share-link`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to update the share link"));
+    }
+    const json = await res.json();
+    return json.data || json;
+  },
+
+  // Read-only retrieval for the owner's share panel -- never creates one.
+  // 404 means no link exists yet (not: something is broken).
+  async getShareLink(memoirId: string): Promise<ShareLink | null> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/share-link`, {
+      method: "GET",
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to load the share link"));
+    }
+    const json = await res.json();
+    return json.data || json;
+  },
+
+  // Soft-revokes the current link (dead immediately). The next
+  // createShareLink call then issues a brand new token.
+  async revokeShareLink(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/share-link`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to revoke the share link"));
+    }
+    return res.json();
+  },
+
+  // Reader identifies with name + the password the owner shared personally.
+  // Returns a short-lived signed reader token -- callers attach it as
+  // `Authorization: Bearer <token>` on every subsequent call for this link
+  // (getSharedMemoir, getComments, createComment).
+  async unlockShareLink(
+    token: string,
+    display_name: string,
+    password: string,
+  ): Promise<UnlockResult> {
+    const res = await apiFetch(`/api/share/${token}/unlock`, {
+      method: "POST",
+      body: JSON.stringify({ display_name, password }),
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      // Thrown with the response attached so the caller can branch on status
+      // (401 = wrong password / re-show the form, 404 = link is dead).
+      const message = parseErrorDetail(errData, "Could not unlock this memoir.");
+      const err = new Error(message) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    return json.data || json;
+  },
+
+  // `readerToken` is the access_token from unlockShareLink -- required for a
+  // password/private link, since the owner's httpOnly cookie never applies
+  // to an anonymous reader's browser.
+  async getSharedMemoir(token: string, readerToken?: string) {
     const res = await apiFetch(`/api/share/${token}`, {
       method: "GET",
+      headers: readerToken ? { Authorization: `Bearer ${readerToken}` } : {},
     });
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(
+      const message =
         errData.detail ||
-          "Failed to load shared memoir. The link may be expired or invalid.",
-      );
+        "Failed to load shared memoir. The link may be expired or invalid.";
+      const err = new Error(message) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
     }
     const json = await res.json();
     return json.data;
+  },
+
+  // --- New share-scoped reader routes (/api/share/{token}/...). These are
+  // the ONLY routes the reader page should call -- they go through the
+  // standalone reader dependency on the backend (domain/reader_access.py),
+  // never the owner's auth, and re-check the link's live state (revoked?
+  // still published?) on every call, not just at unlock. ---
+
+  async getSharedMemoirFull(token: string, readerToken: string): Promise<SharedMemoirFull> {
+    const res = await apiFetch(`/api/share/${token}/memoir`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${readerToken}` },
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const message = errData.detail || "Failed to load this memoir.";
+      const err = new Error(message) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    return json.data;
+  },
+
+  async getSharedSources(
+    token: string,
+    sectionId: string,
+    readerToken: string,
+  ): Promise<SourceMemory[]> {
+    const res = await apiFetch(`/api/share/${token}/memories/${sectionId}/sources`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${readerToken}` },
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const err = new Error(errData.detail || "Failed to load sources.") as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    return json.memories || [];
+  },
+
+  async getSharedComments(
+    token: string,
+    target: { memory_id?: string; narrative_section_id?: string },
+    readerToken: string,
+  ): Promise<CommentEntity[]> {
+    const params = new URLSearchParams();
+    if (target.memory_id) params.set("memory_id", target.memory_id);
+    if (target.narrative_section_id) params.set("narrative_section_id", target.narrative_section_id);
+    const res = await apiFetch(`/api/share/${token}/comments?${params.toString()}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${readerToken}` },
+    });
+    if (res.status === 404) return [];
+    if (!res.ok) throw new Error("Failed to load comments.");
+    const data = await res.json();
+    return Array.isArray(data) ? data : data.comments || [];
+  },
+
+  async postSharedComment(
+    token: string,
+    payload: {
+      memoir_id: string;
+      memory_id?: string | null;
+      narrative_section_id?: string | null;
+      parent_comment_id?: string | null;
+      body: string;
+    },
+    readerToken: string,
+  ): Promise<CommentEntity> {
+    const res = await apiFetch(`/api/share/${token}/comments`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { Authorization: `Bearer ${readerToken}` },
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      const message = parseErrorDetail(errData, "Failed to post comment.");
+      const err = new Error(message) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
+    }
+    const data = await res.json();
+    return data.comment || data;
+  },
+
+  // AI-composed narrative. generateNarrative/regenerateNarrativeSection run in
+  // the background on the server -- callers poll getNarrativeStatus.
+  async generateNarrative(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/generate-narrative`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to start narrative generation"));
+    }
+    return res.json();
+  },
+
+  async getNarrativeStatus(memoirId: string): Promise<NarrativeStatus> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative/status`, {
+      method: "GET",
+    });
+    if (!res.ok) throw new Error("Failed to check narrative status");
+    return res.json();
+  },
+
+  // Reader token is required on the share page (readerToken attaches
+  // Authorization: Bearer); omitted for the owner's own session, which rides
+  // the httpOnly cookie.
+  async getNarrativeSections(memoirId: string, readerToken?: string): Promise<NarrativeSection[]> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative`, {
+      method: "GET",
+      headers: readerToken ? { Authorization: `Bearer ${readerToken}` } : {},
+    });
+    if (!res.ok) {
+      if (res.status === 404) return [];
+      throw new Error("Failed to load the narrative");
+    }
+    const json = await res.json();
+    return json.data || [];
+  },
+
+  async getNarrativeSources(
+    memoirId: string,
+    sectionId: string,
+    readerToken?: string,
+  ): Promise<SourceMemory[]> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative/${sectionId}/sources`, {
+      method: "GET",
+      headers: readerToken ? { Authorization: `Bearer ${readerToken}` } : {},
+    });
+    if (!res.ok) throw new Error("Failed to load sources for this section");
+    const json = await res.json();
+    return json.memories || [];
+  },
+
+  async updateNarrativeSection(
+    memoirId: string,
+    sectionId: string,
+    body: string,
+  ): Promise<NarrativeSection> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative/${sectionId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ body }),
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to update this section"));
+    }
+    const json = await res.json();
+    return json.data;
+  },
+
+  async deleteNarrativeSection(memoirId: string, sectionId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative/${sectionId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to delete this section"));
+    }
+    return res.json();
+  },
+
+  async regenerateNarrativeSection(memoirId: string, sectionId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative/${sectionId}/regenerate`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to regenerate this section"));
+    }
+    return res.json();
+  },
+
+  async markNarrativeReviewed(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/narrative/review`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to mark the narrative reviewed"));
+    }
+    return res.json();
+  },
+
+  // Owner profile: account details plus every memoir they own, drafts first.
+  async getOwnerProfile(): Promise<OwnerProfile> {
+    const res = await apiFetch("/api/me/profile", { method: "GET" });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to load your profile"));
+    }
+    const json = await res.json();
+    return json.data || json;
   },
 
   // AI Organization & Chapters
@@ -411,6 +908,51 @@ export const api = {
       method: "GET",
     });
     if (!res.ok) throw new Error("Failed to check organize status");
+    return OrganizeStatusSchema.parse(await res.json());
+  },
+
+  // The organize job now produces a REVIEWABLE PROPOSAL rather than writing
+  // chapters directly. After status reports 'ready', fetch the proposal, show
+  // it to the owner, and only then call applyOrganizationProposal.
+  //
+  // This two-step shape is deliberate: the server holds the plan and the client
+  // holds only an id, so nothing about what gets written can be influenced by
+  // a request body.
+  async getOrganizeProposal(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/organize/proposal`, {
+      method: "GET",
+    });
+    // 404 means "nothing pending to review", which is a normal state right
+    // after a run completes for a memoir with no memories -- not an error.
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to load the proposal"));
+    }
+    // Validated at the boundary per the project convention -- no unvalidated
+    // API data enters the app.
+    return ProposalListResponseSchema.parse(await res.json());
+  },
+
+  async applyOrganizationProposal(memoirId: string, proposalId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/organize/apply`, {
+      method: "POST",
+      body: JSON.stringify({ proposal_id: proposalId }),
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(
+        parseErrorDetail(errData, "Could not apply the proposal"),
+      );
+    }
+    return ApplyProposalResultSchema.parse(await res.json());
+  },
+
+  async getOrganizationHistory(memoirId: string) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/organize/history`, {
+      method: "GET",
+    });
+    if (!res.ok) throw new Error("Failed to load organization history");
     return res.json();
   },
 
@@ -419,7 +961,10 @@ export const api = {
       method: "GET",
     });
     if (!res.ok) throw new Error("Failed to fetch chapters");
-    return (await res.json()).data;
+    // Validated rather than cast: the chapter shape drives what the memoir page
+    // renders, and a silent field rename should fail here instead of producing
+    // an empty heading in someone's family book.
+    return z.array(ChapterSchema).parse((await res.json()).data);
   },
 
   async renameChapter(memoirId: string, chapterId: string, title: string) {
@@ -464,7 +1009,9 @@ export const api = {
       throw new Error(parseErrorDetail(errData, "Failed to query archive"));
     }
 
-    const data = await res.json();
-    return data; 
+    // Validated at the boundary. `proposed_actions` is part of the contract:
+    // the assistant can suggest changes, and those suggestions arrive here for
+    // the owner to review. Nothing in this response has been applied.
+    return ChatResponseSchema.parse(await res.json());
   },
 };

@@ -1,13 +1,47 @@
 import React from "react";
 import { ShortQuote } from "./types";
+import type { Chapter } from "@/features/dashboard/types/organization";
 
 interface MemoirSidebarProps {
   activeView: "timeline" | "chapters";
   setActiveView: (val: "timeline" | "chapters") => void;
   mockShortQuotes: ShortQuote[];
+  /**
+   * Real chapters from the backend.
+   *
+   * Previously this sidebar rendered four hardcoded chapter titles, so the
+   * organized chapters an owner had just approved and applied were never
+   * visible here -- the memoir page was entirely mock data.
+   */
+  chapters?: Chapter[];
 }
 
-export default function MemoirSidebar({ activeView, setActiveView, mockShortQuotes }: MemoirSidebarProps) {
+export default function MemoirSidebar({
+  activeView,
+  setActiveView,
+  mockShortQuotes,
+  chapters = [],
+}: MemoirSidebarProps) {
+  // Decade labels derived from the memories actually assigned to a chapter,
+  // rather than a fixed 1950s-2000s list that had nothing to do with the data.
+  const chapterEras = React.useMemo(() => {
+    return chapters.map((chapter) => {
+      const years = chapter.memories
+        .map((m) => (m.occurred_start ? m.occurred_start.slice(0, 4) : null))
+        .filter((y): y is string => Boolean(y) && /^\d{4}$/.test(y as string))
+        .map(Number)
+        .filter((y) => !Number.isNaN(y));
+
+      if (years.length === 0) return null;
+      const min = Math.min(...years);
+      const max = Math.max(...years);
+      const decade = (y: number) => `${Math.floor(y / 10) * 10}s`;
+      return min === max ? decade(min) : `${decade(min)}–${decade(max)}`;
+    });
+  }, [chapters]);
+
+  const hasChapters = chapters.length > 0;
+
   return (
     <aside className="w-full lg:w-56 shrink-0 space-y-8">
       {/* Toggle Panel */}
@@ -31,24 +65,51 @@ export default function MemoirSidebar({ activeView, setActiveView, mockShortQuot
         </div>
 
         <div className="space-y-3">
-          {activeView === "timeline" && (
+          {!hasChapters && (
+            <p className="text-[11px] font-serif text-stone-400 italic">
+              No chapters yet. Organize your timeline from the dashboard to build
+              this book.
+            </p>
+          )}
+
+          {hasChapters && activeView === "chapters" && (
             <ul className="space-y-2.5 text-[11px] font-serif">
-              {["1950s", "1960s", "1970s", "1980s", "1990s", "2000s"].map((decade) => (
-                <li key={decade} className="flex items-center justify-between text-stone-600 hover:text-memory-maroon cursor-pointer pb-1 border-b border-stone-100">
-                  <span>{decade}</span>
-                  <span className="text-[9px] font-sans uppercase tracking-wider text-stone-400">Archive</span>
+              {chapters.map((chapter, idx) => (
+                <li
+                  key={chapter.id}
+                  className="flex items-center justify-between text-stone-600 pb-1 border-b border-stone-100"
+                >
+                  <span className="truncate pr-2" title={chapter.title}>
+                    {chapter.title}
+                  </span>
+                  <span className="text-[9px] font-sans text-stone-400 shrink-0">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
                 </li>
               ))}
             </ul>
           )}
-          {activeView === "chapters" && (
+
+          {hasChapters && activeView === "timeline" && (
             <ul className="space-y-2.5 text-[11px] font-serif">
-              {["The girl with the open window", "The things she carried", "A room at the center", "What stays warm"].map((chapter, idx) => (
-                <li key={chapter} className="flex items-center justify-between text-stone-600 hover:text-memory-maroon cursor-pointer pb-1 border-b border-stone-100">
-                  <span className="truncate pr-2">{chapter}</span>
-                  <span className="text-[9px] font-sans text-stone-400 shrink-0">0{idx + 1}</span>
-                </li>
-              ))}
+              {chapters.map((chapter, idx) => {
+                const era = chapterEras[idx];
+                if (!era) return null;
+                return (
+                  <li
+                    key={chapter.id}
+                    className="flex items-center justify-between text-stone-600 pb-1 border-b border-stone-100"
+                  >
+                    <span>{era}</span>
+                    <span
+                      className="text-[9px] font-sans uppercase tracking-wider text-stone-400 truncate pl-2"
+                      title={chapter.title}
+                    >
+                      {chapter.title}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useSyncExternalStore } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface BookCoverExperienceProps {
@@ -8,53 +8,88 @@ interface BookCoverExperienceProps {
   userName?: string;
 }
 
+/**
+ * No-op subscription for useSyncExternalStore.
+ *
+ * The value being tracked (browser vs server) can never change within a single
+ * page's lifetime, so there is nothing to subscribe to. This exists only to
+ * give useSyncExternalStore the subscribe function it requires.
+ */
+const subscribeToNothing = () => () => {};
+
 export function BookCoverExperience({
   children,
   userName = "Daniyah"
 }: BookCoverExperienceProps) {
   const [isVisible, setIsVisible] = useState(true);
-  const [isClient, setIsClient] = useState(false);
-  const [particles, setParticles] = useState<{ 
-    id: number; top: string; left: string; moveX: string; size: number; duration: number; delay: number; isPaper: boolean 
-  }[]>([]);
 
-  useEffect(() => {
-    setIsClient(true);
-    
-    // =====================================================================
-    // DEVELOPMENT OVERRIDE: 
-    // We have commented out the sessionStorage check so you can actually 
-    // see the animation while coding! Uncomment this block for production.
-    // =====================================================================
-    
-    /* 
-    const hasSeen = sessionStorage.getItem("hasSeenBookCover");
-    if (hasSeen) {
-      setTimeout(() => setIsVisible(false), 0);
-      return; 
-    } 
-    */
+  /**
+   * "Am I running in the browser?" without a setState-in-effect.
+   *
+   * The previous `const [isClient, setIsClient] = useState(false)` +
+   * `useEffect(() => setIsClient(true))` forced a synchronous setState inside
+   * an effect body, which causes a cascading render — the server renders
+   * false, then the client immediately re-renders true. `useSyncExternalStore`
+   * expresses the same fact declaratively: React reads the snapshot directly,
+   * and the server snapshot is what SSR uses.
+   */
+  const isClient = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
 
-    // Set the flag for when you uncomment the code above
-    sessionStorage.setItem("hasSeenBookCover", "true");
-    
-    // Lock scroll while experience is active so the user stays perfectly centered
-    document.body.style.overflow = "hidden";
-
-    const generated = Array.from({ length: 30 }).map((_, i) => {
+  /**
+   * Particles are generated once, in a lazy initializer, rather than in an
+   * effect.
+   *
+   * Two problems with generating them in an effect: `setParticles` fires a
+   * synchronous setState inside the effect body (a cascading render, which
+   * `npm run lint` rejects), and the values are random, so a second render pass
+   * could produce a different layout than the first. A lazy initializer runs
+   * exactly once per mount.
+   *
+   * Safe with respect to hydration because the particle block is gated behind
+   * `isClient`, so it is not part of the server or hydration render at all.
+   */
+  const [particles] = useState<{
+    id: number; top: string; left: string; moveX: string; size: number; duration: number; delay: number; isPaper: boolean
+  }[]>(() =>
+    Array.from({ length: 30 }).map((_, i) => {
       const fromLeft = Math.random() > 0.5;
       return {
         id: i,
         top: `${Math.random() * 100}%`,
         left: fromLeft ? `${-10 - Math.random() * 20}%` : `${110 + Math.random() * 20}%`,
-        moveX: fromLeft ? "120vw" : "-120vw", 
+        moveX: fromLeft ? "120vw" : "-120vw",
         size: Math.random() > 0.6 ? Math.random() * 15 + 10 : Math.random() * 3 + 1,
-        duration: Math.random() * 8 + 12, 
+        duration: Math.random() * 8 + 12,
         delay: Math.random() * 3,
-        isPaper: Math.random() > 0.6, 
+        isPaper: Math.random() > 0.6,
       };
-    });
-    setParticles(generated);
+    }),
+  );
+
+  useEffect(() => {
+    // =====================================================================
+    // DEVELOPMENT OVERRIDE:
+    // We have commented out the sessionStorage check so you can actually
+    // see the animation while coding! Uncomment this block for production.
+    // =====================================================================
+
+    /*
+    const hasSeen = sessionStorage.getItem("hasSeenBookCover");
+    if (hasSeen) {
+      setTimeout(() => setIsVisible(false), 0);
+      return;
+    }
+    */
+
+    // Set the flag for when you uncomment the code above
+    sessionStorage.setItem("hasSeenBookCover", "true");
+
+    // Lock scroll while experience is active so the user stays perfectly centered
+    document.body.style.overflow = "hidden";
 
     const timer = setTimeout(() => {
       setIsVisible(false);

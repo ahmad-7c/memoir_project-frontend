@@ -2,35 +2,56 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageSquare, X } from "lucide-react";
+import { MessageSquare, X, Sparkles } from "lucide-react";
 import { api } from "@/lib/api/client";
+import type { ProposedAction } from "../types/organization";
 
 interface ArchiveChatWidgetProps {
   memoirId: string;
 }
 
+interface ChatTurn {
+  role: "user" | "assistant";
+  text: string;
+  /**
+   * Changes the assistant would like to make. Rendered for review only —
+   * nothing here has been applied, and applying requires going through the
+   * proposal flow rather than clicking something in this widget.
+   */
+  proposedActions?: ProposedAction[];
+}
+
 export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatQuery, setChatQuery] = useState("");
-  const [chatHistory, setChatHistory] = useState<{ role: string; text: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatTurn[]>([]);
 
   const handleSendChat = async () => {
     if (!chatQuery.trim() || !memoirId) return;
     const userText = chatQuery.trim();
     setChatQuery("");
-    
+
     const currentHistoryForApi = [...chatHistory];
     setChatHistory(prev => [...prev, { role: 'user', text: userText }]);
 
     try {
       const backendHistory = currentHistoryForApi.map(msg => ({
-        role: msg.role === 'user' ? 'user' : 'assistant',
+        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
         content: msg.text
       }));
 
+      // Response is validated by a Zod schema at the API boundary, so `reply`
+      // and `proposed_actions` are guaranteed present here rather than being
+      // probed for across four possible field names.
       const res = await api.askArchive(memoirId, userText, backendHistory);
-      const answer = res.reply || res.data?.reply || res.answer || res.response || "I have analyzed your archive records.";
-      setChatHistory(prev => [...prev, { role: 'assistant', text: answer }]);
+      setChatHistory(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          text: res.reply || "I have analyzed your archive records.",
+          proposedActions: res.proposed_actions,
+        },
+      ]);
     } catch (e) {
       console.error("Chat error:", e);
       setChatHistory(prev => [...prev, { role: 'assistant', text: "Sorry, I encountered an error querying your archive." }]);
@@ -65,10 +86,37 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
                 </div>
               ) : (
                 chatHistory.map((msg, i) => (
-                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                     <div className={`p-3 rounded-xl max-w-[85%] text-[13px] font-sans ${msg.role === 'user' ? 'bg-memory-primary text-white rounded-tr-sm' : 'bg-white border border-stone-200 text-stone-800 rounded-tl-sm shadow-sm'}`}>
                       {msg.text}
                     </div>
+
+                    {/* Suggestions are shown, never auto-applied. Applying a
+                        change requires the proposal review flow, which is where
+                        the owner sees what would change and confirms it. */}
+                    {msg.proposedActions && msg.proposedActions.length > 0 && (
+                      <div className="max-w-[85%] mt-1.5 space-y-1.5">
+                        {msg.proposedActions.map((action, j) => (
+                          <div
+                            key={j}
+                            className="flex items-start gap-1.5 text-[11px] text-stone-500 bg-white/70 border border-stone-200 rounded-lg px-2.5 py-1.5"
+                          >
+                            <Sparkles size={11} className="text-memory-primary shrink-0 mt-0.5" />
+                            <span>
+                              <span className="font-semibold text-stone-700">
+                                {action.action_type.replace(/_/g, " ")}
+                              </span>
+                              {action.rationale ? ` — ${action.rationale}` : ""}
+                            </span>
+                          </div>
+                        ))}
+                        <p className="text-[10px] text-stone-400 px-1">
+                          Suggestions only — nothing has been changed. Use
+                          &ldquo;Organize Timeline&rdquo; to review and apply
+                          chapter changes.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

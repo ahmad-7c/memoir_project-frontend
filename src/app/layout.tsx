@@ -11,7 +11,7 @@ const inter = Inter({
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-serif",
+  variable: "--font-playfair",
 });
 
 const caveat = Caveat({
@@ -25,6 +25,20 @@ export const metadata: Metadata = {
   description: "Preserve your life's legacy.",
 };
 
+// Runs before paint, before React hydrates. Reads the stored preference (or
+// falls back to the OS setting) and applies `.dark` synchronously, so there
+// is no flash of the wrong theme on load -- this cannot be done from a React
+// effect, which only runs after the first paint.
+const THEME_ANTI_FLASH_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("theme");
+    var isDark = stored === "dark" || (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    if (isDark) document.documentElement.classList.add("dark");
+  } catch (e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: {
@@ -32,7 +46,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${playfair.variable} ${caveat.variable}`}>
-      <body className="font-sans antialiased bg-[#FAF8F5] text-[#1D1D1D]">
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_ANTI_FLASH_SCRIPT }} />
+      </head>
+      <body className="font-sans antialiased bg-memory-bg text-memory-primary dark:text-memory-ink transition-colors duration-300">
         {children}
       </body>
     </html>

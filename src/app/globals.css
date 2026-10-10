@@ -1,6 +1,14 @@
 /* The stylesheet used containing tailwind and css rules applied accross application */
 @import "tailwindcss";
 
+/*
+ * Dark mode variant: matches BOTH system preference (prefers-color-scheme)
+ * and an explicit .dark class on <html> (set by ThemeToggle + the anti-flash
+ * script in layout.tsx), so `dark:` utilities work whether the user has never
+ * touched the toggle or has explicitly overridden it.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -18,6 +26,28 @@
 
   /* Semantic form token */
   --memory-required: #dc2626;
+
+  /*
+   * Dark-mode-safe surface/text tokens, ADDITIVE to the palette above -- the
+   * existing memory-primary/accent/maroon/light tokens are left unchanged
+   * globally (they're used as both text-on-light-bg AND solid button fills
+   * throughout the app; flipping them wholesale would fix contrast in one
+   * role and break it in the other on every screen this pass doesn't touch).
+   * These new tokens exist for screens being actively redesigned to opt into
+   * dark mode via explicit `dark:` utilities, without touching untouched
+   * screens' existing light-mode-only markup.
+   */
+  --memory-ink: #e9e2d8;       /* warm off-white heading/body text on a dark surface */
+  --memory-gold: #d9b876;      /* lifted candlelight-gold accent, legible on dark */
+}
+
+:root.dark {
+  --memory-bg: #17120f;
+  --memory-card: #221b17;
+  --memory-border: #3a2e27;
+  --memory-muted: #a89a8c;
+  --background: #17120f;
+  --foreground: #e9e2d8;
 }
 
 @theme inline {
@@ -42,6 +72,9 @@
 
   /* Semantic form token */
   --color-memory-required: var(--memory-required);
+
+  --color-memory-ink: var(--memory-ink);
+  --color-memory-gold: var(--memory-gold);
 }
 
 body {

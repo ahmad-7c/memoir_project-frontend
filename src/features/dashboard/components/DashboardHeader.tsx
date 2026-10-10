@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { Search, Lock, Copy, Check } from "lucide-react";
+import { Search, Lock, Copy, Check, Sparkles } from "lucide-react";
 interface DashboardHeaderProps {
   name: string;
   setName: (name: string) => void;
@@ -10,10 +10,12 @@ interface DashboardHeaderProps {
   setSearchQuery: (query: string) => void;
   handleCopyLink: () => void;
   isLinkCopied: boolean;
+  onLockClick?: () => void;
+  onNarrativeClick?: () => void;
 }
 
 export function DashboardHeader({
-  name, setName, dates, setDates, searchQuery, setSearchQuery, handleCopyLink, isLinkCopied
+  name, setName, dates, setDates, searchQuery, setSearchQuery, handleCopyLink, isLinkCopied, onLockClick, onNarrativeClick
 }: DashboardHeaderProps) {
   return (
     <>
@@ -70,9 +72,22 @@ export function DashboardHeader({
             </div>
           </motion.button>
 
-          {/* Lock Button - Darkened outer border to match the dark maroon */}
-          <motion.button 
+          {/* Narrative Button */}
+          <motion.button
             type="button"
+            onClick={onNarrativeClick}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative w-11 h-11 bg-white border border-stone-500 rounded-full flex items-center justify-center shadow-md cursor-pointer hover:bg-stone-100 transition-colors"
+            title="The Narrative"
+          >
+            <Sparkles size={15} className="text-memory-primary" />
+          </motion.button>
+
+          {/* Lock Button - Darkened outer border to match the dark maroon */}
+          <motion.button
+            type="button"
+            onClick={onLockClick}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="relative w-11 h-11 bg-memory-primary rounded-full flex items-center justify-center shadow-md cursor-pointer border border-[#240d14]/40 hover:bg-[#240d14] transition-colors"

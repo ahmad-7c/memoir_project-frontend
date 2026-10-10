@@ -1,6 +1,15 @@
 /**
  * @file useComments.ts
  * @description Custom React hook for managing comment state and submissions.
+ *
+ * Branches between two ENTIRELY separate backend code paths depending on
+ * the caller:
+ *   - owner (no shareToken): /api/comments/, cookie-authenticated.
+ *   - reader (shareToken set): /api/share/{shareToken}/comments, authenticated
+ *     by the reader token via domain/reader_access.py on the backend.
+ * This mirrors the backend's own split (see domain/reader_access.py's
+ * docstring) -- a reader session and an owner session never share a request
+ * path, on either side of the wire.
  */
 
 "use client";
@@ -8,21 +17,39 @@
 import { useState, useEffect, useCallback } from "react";
 import { api, CommentEntity } from "@/lib/api/client";
 
-export function useComments(memoryId: string, memoirId: string) {
+interface UseCommentsTarget {
+  memoryId?: string;
+  narrativeSectionId?: string;
+}
+
+export function useComments(
+  target: UseCommentsTarget,
+  memoirId: string,
+  shareToken?: string,
+  readerToken?: string,
+) {
+  const { memoryId, narrativeSectionId } = target;
   const [comments, setComments] = useState<CommentEntity[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadComments = useCallback(async () => {
-    if (!memoryId) {
+    if (!memoryId && !narrativeSectionId) {
       setLoading(false);
       return;
     }
 
     try {
       setError(null);
-      const data = await api.getComments(memoryId);
+      const data =
+        shareToken && readerToken
+          ? await api.getSharedComments(
+              shareToken,
+              { memory_id: memoryId, narrative_section_id: narrativeSectionId },
+              readerToken,
+            )
+          : await api.getComments(memoryId || "");
       setComments(data);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Error loading comments";
@@ -30,14 +57,14 @@ export function useComments(memoryId: string, memoirId: string) {
     } finally {
       setLoading(false);
     }
-  }, [memoryId]);
+  }, [memoryId, narrativeSectionId, shareToken, readerToken]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadComments();
   }, [loadComments]);
 
-  const addComment = async (body: string,parentCommentId?: string) => {
+  const addComment = async (body: string, parentCommentId?: string) => {
     if (!body.trim()) return;
 
     if (!memoirId) {
@@ -49,17 +76,18 @@ export function useComments(memoryId: string, memoirId: string) {
       setSubmitting(true);
       setError(null);
 
-      // Payload only requires memoir details and body text. 
       const payload = {
         memoir_id: memoirId,
-        memory_id: memoryId,
-        media_asset_id: null,
-        parent_comment_id: parentCommentId || null, // Passes parent ID if replying
+        memory_id: memoryId || null,
+        narrative_section_id: narrativeSectionId || null,
+        parent_comment_id: parentCommentId || null,
         body: body.trim(),
       };
 
-      //This calling function in client.ts
-      const newComment = await api.createComment(payload);
+      const newComment =
+        shareToken && readerToken
+          ? await api.postSharedComment(shareToken, payload, readerToken)
+          : await api.createComment({ ...payload, media_asset_id: null });
 
       setComments((prev) => [...prev, newComment]);
     } catch (err: unknown) {

@@ -33,9 +33,10 @@ export default function SignupForm() {
   const onSubmit = async (data: ExtendedSignupInput) => {
     try {
       const success = await handleSignup(data);
-      // Only push to dashboard if we received a session token immediately
+      // The first-memoir screen is the explicit, deliberate moment where the
+      // memoir actually gets created -- not a silent background step here.
       if (success) {
-        router.push("/dashboard");
+        router.push("/first-memoir");
       }
     } catch (err) {
       console.error("Signup error:", err);

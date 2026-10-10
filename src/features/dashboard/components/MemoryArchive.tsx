@@ -2,7 +2,16 @@
 
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Wand2, Edit2, LayoutGrid, ListTree } from "lucide-react";
+import {
+  Layers,
+  Wand2,
+  Edit2,
+  LayoutGrid,
+  ListTree,
+  Check,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
 import { MemoryItem } from "../types";
 import { MemoryCard } from "./MemoryCard";
 
@@ -24,6 +33,13 @@ interface MemoryArchiveProps {
   onGenerateTimeline?: () => void;
   onRenameChapter?: (chapterId: string, newTitle: string) => void;
   onMemoryOptionSelect?: (action: string, memoryId: string, targetChapterId?: string) => void;
+
+  /** Active pipeline stage from the backend, e.g. "reading memories". */
+  organizeStage?: string | null;
+  /** Full stage list, so the wait is legible instead of an opaque spinner. */
+  organizeStages?: string[];
+  /** Owner-facing failure message, if the last run failed or stalled. */
+  organizeError?: string | null;
 }
 
 export function MemoryArchive({ 
@@ -34,7 +50,10 @@ export function MemoryArchive({
   isGenerating = false,
   onGenerateTimeline,
   onRenameChapter,
-  onMemoryOptionSelect
+  onMemoryOptionSelect,
+  organizeStage = null,
+  organizeStages = [],
+  organizeError = null,
 }: MemoryArchiveProps) {
   
   const [viewMode, setViewMode] = useState<"material" | "timeline">("material");
@@ -184,9 +203,57 @@ export function MemoryArchive({
                       isGenerating ? 'bg-stone-400 cursor-not-allowed' : 'bg-memory-primary hover:bg-[#5a222a] cursor-pointer'
                     }`}
                   >
-                    <Wand2 size={16} className={isGenerating ? "animate-pulse" : ""} />
-                    {isGenerating ? "Assembling Chapters..." : "Organize Timeline"}
+                    <Wand2 size={16} className={isGenerating ? "animate-spin" : ""} />
+                    {isGenerating
+                      ? (organizeStage ?? "Reading your memories...")
+                      : "Organize Timeline"}
                   </motion.button>
+
+                  {/* Stage list while running. The backend reports which agent
+                      stage is active, so the wait is legible instead of an
+                      indefinite spinner. */}
+                  {isGenerating && organizeStages.length > 0 && (
+                    <ul className="mt-8 space-y-2 text-left" aria-live="polite">
+                      {organizeStages.map((stage, i) => {
+                        const activeIndex = organizeStages.indexOf(
+                          organizeStage ?? organizeStages[0],
+                        );
+                        const state =
+                          i < activeIndex ? "done" : i === activeIndex ? "active" : "pending";
+                        return (
+                          <li
+                            key={stage}
+                            className={`flex items-center gap-2.5 text-sm ${
+                              state === "pending" ? "text-stone-400" : "text-stone-700"
+                            }`}
+                          >
+                            {state === "done" ? (
+                              <Check size={14} className="text-green-600 shrink-0" />
+                            ) : state === "active" ? (
+                              <Loader2 size={14} className="text-memory-primary animate-spin shrink-0" />
+                            ) : (
+                              <span className="w-3.5 shrink-0" />
+                            )}
+                            <span className={state === "active" ? "font-semibold" : ""}>
+                              {stage}
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+
+                  {organizeError && (
+                    <div
+                      role="alert"
+                      className="mt-6 flex gap-2.5 items-start text-left bg-red-50 border border-red-200 rounded-xl px-4 py-3 max-w-sm mx-auto"
+                    >
+                      <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                      <p className="text-[13px] text-red-800 leading-relaxed">
+                        {organizeError}
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Reduced gap between chapters from space-y-40 down to space-y-16 */

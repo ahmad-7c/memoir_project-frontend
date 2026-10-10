@@ -1,34 +1,75 @@
 // cspell:disable
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useExportMemoir } from "@/hooks/useExportMemoir";
-import { api, CommentEntity } from "@/lib/api/client";
+import { api, NarrativeSection } from "@/lib/api/client";
+import { NarrativeSectionsView } from "@/features/narrative/NarrativeSectionsView";
+import { MemoryComments } from "@/features/comments/MemoryComments";
 
 // Custom Components
 import MemoirHeader from "@/features/FinalMemoir/MemoirHeader";
 import MemoirHero from "@/features/FinalMemoir/MemoirHero";
 import MemoirActionBar from "@/features/FinalMemoir/MemoirActionBar";
-import MemoryCard from "@/features/FinalMemoir/MemoryCard";
+// NOTE: @/features/FinalMemoir/MemoryCard is intentionally not imported here.
+// It renders the mock MemoryItem shape (author, reactionsCount, imageCaption),
+// which has no equivalent in the database. Real memories are rendered by
+// RealMemoryCard below. The mock component remains for the design preview.
 import MemoirSidebar from "@/features/FinalMemoir/MemoirSidebar";
 import ScatteredGallery from "@/features/FinalMemoir/ScatteredGallery";
 
 // Mock Data
-import { mockHeroPhotos, mockMemories, mockShortQuotes } from "@/features/FinalMemoir/mockData";
+import { mockHeroPhotos, mockShortQuotes } from "@/features/FinalMemoir/mockData";
+import { ChapterSchema } from "@/features/dashboard/types/organization";
+import type { Chapter } from "@/features/dashboard/types/organization";
+import { z } from "zod";
 
-interface ReplyItem {
+interface RealMemory {
   id: string;
-  author: string;
-  text: string;
-  time: string;
+  title: string | null;
+  body_text: string | null;
+  occurred_start: string | null;
 }
 
-interface CommentItem {
-  id: string;
-  author: string;
-  text: string;
-  time: string;
-  replies?: ReplyItem[];
+/**
+ * Card for a real memory row.
+ *
+ * Separate from the mock `MemoryCard` rather than adapting the mock one to
+ * accept real data: that component's shape (author, reactionsCount, imageCaption,
+ * chapter as a string) has no equivalent in the database, so a compatibility
+ * layer would have to invent values. Rendering the fields that actually exist
+ * is honest. Comments are margin notes (MemoryComments) -- no reaction/like
+ * affordance here by design; see the comments feature's own docstring.
+ */
+function RealMemoryCard({ memoirId, memory }: { memoirId: string; memory: RealMemory }) {
+  const body = (memory.body_text ?? "").trim();
+
+  return (
+    <article className="mb-8">
+      {memory.title && (
+        <h3 className="text-xl font-serif text-stone-800 dark:text-memory-ink mb-1">{memory.title}</h3>
+      )}
+      {memory.occurred_start && (
+        <p className="text-[11px] font-sans uppercase tracking-[0.18em] text-stone-400 mb-2">
+          {memory.occurred_start}
+        </p>
+      )}
+
+      {body ? (
+        <p className="text-[17px] font-serif leading-[1.9] text-stone-800 dark:text-memory-ink whitespace-pre-wrap">
+          {body}
+        </p>
+      ) : (
+        <p className="text-sm font-serif italic text-stone-400">
+          This memory has no text yet.
+        </p>
+      )}
+
+      {/* Owners can always comment on their own memoir -- comment_policy
+          only gates readers (see backend CommentsService.create_new_comment). */}
+      <MemoryComments memoirId={memoirId} memoryId={memory.id} canComment />
+    </article>
+  );
 }
 
 export default function FinalMemoirPage() {
@@ -44,19 +85,25 @@ export default function FinalMemoirPage() {
 
   const [pdfFileName, setPdfFileName] = useState("nadias-story");
   const [isTurningPage] = useState(false);
-  const [openCommentsId, setOpenCommentsId] = useState<string | null>(null);
-  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
-  
-  // Strict typing for comments map without any 'any' types
-  const [commentsMap, setCommentsMap] = useState<Record<string, CommentItem[]>>({});
-  
-  const [reactions, setReactions] = useState<Record<string, { count: number; reacted: boolean }>>(() => {
-    const initial: Record<string, { count: number; reacted: boolean }> = {};
-    mockMemories.forEach(m => {
-      initial[m.id] = { count: m.reactionsCount, reacted: false };
-    });
-    return initial;
-  });
+
+  // Real chapters from the backend.
+  //
+  // This page was previously driven entirely by mockMemories, which meant the
+  // chapters an owner had just approved and applied never appeared here — the
+  // memoir page was a design mock. `chapter_id` is the only link between a
+  // chapter and its memories; grouping here is a view, not a copy.
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [chaptersError, setChaptersError] = useState<string | null>(null);
+  const [narrativeSections, setNarrativeSections] = useState<NarrativeSection[]>([]);
+
+  // Which memoir the current `chapters` belong to.
+  //
+  // This replaces a `chaptersLoading` boolean. A boolean has to be set to true
+  // inside the effect body, which is a synchronous setState in an effect and
+  // triggers a cascading render. Tracking *what* was loaded instead lets
+  // "loading" be derived during render, so nothing is written to state before
+  // the fetch resolves.
+  const [loadedForMemoirId, setLoadedForMemoirId] = useState<string | null>(null);
 
   const [memoirId] = useState<string>(() => {
     if (typeof window === "undefined") return "";
@@ -72,7 +119,78 @@ export default function FinalMemoirPage() {
     return "";
   });
 
+  // Derived, not stored: there is nothing to fetch when no memoir is selected,
+  // and "still loading" is simply "what we have isn't for this memoir yet".
+  const noMemoirSelected = !memoirId;
+  const resolvedLoading = !noMemoirSelected && loadedForMemoirId !== memoirId;
+  const resolvedError = noMemoirSelected
+    ? "No memoir selected. Open your dashboard and choose a memoir first."
+    : chaptersError;
+
   const { triggerExport, isExporting } = useExportMemoir(memoirId);
+
+  // Load the real chapter structure.
+  //
+  // `memoirId` comes from localStorage, so it is a hint and not an
+  // authorization — the backend independently verifies that the authenticated
+  // user is an active participant of that memoir. A 404 here means "not
+  // yours / doesn't exist" and is reported as such rather than as an empty book.
+  useEffect(() => {
+    // No synchronous setState in this effect body: the loading flag is derived
+    // from `loadedForMemoirId` above, so nothing is written to state until the
+    // fetch actually settles. Calling setState synchronously in an effect
+    // triggers a cascading render, which `npm run lint` rejects.
+    if (!memoirId) return;
+
+    let cancelled = false;
+    const requestedMemoirId = memoirId;
+
+    api
+      .getChapters(requestedMemoirId)
+      .then((data) => {
+        if (cancelled) return;
+        // Validated at the API boundary, but re-parsed here so a shape change
+        // surfaces as a clear message rather than a crash mid-render of
+        // someone's family book.
+        setChapters(z.array(ChapterSchema).parse(data));
+        setChaptersError(null);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setChapters([]);
+        setChaptersError(
+          err instanceof Error ? err.message : "Could not load this memoir."
+        );
+      })
+      .finally(() => {
+        // Records that the load settled for this memoir, so the derived loading
+        // flag turns off — on failure as well as success.
+        if (!cancelled) setLoadedForMemoirId(requestedMemoirId);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [memoirId]);
+
+  // Narrative sections, if this memoir has any. Fetched the same way as
+  // chapters: a .then/.catch chain only, nothing set synchronously in the
+  // effect body.
+  useEffect(() => {
+    if (!memoirId) return;
+    let cancelled = false;
+    api
+      .getNarrativeSections(memoirId)
+      .then((data) => {
+        if (!cancelled) setNarrativeSections(data);
+      })
+      .catch(() => {
+        if (!cancelled) setNarrativeSections([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [memoirId]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -88,177 +206,6 @@ export default function FinalMemoirPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
-  // Helper to check if an ID is a valid database UUID
-  const isValidUuid = (id: string) => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(id);
-  };
-
-  // Helper to format flat backend comment entities into nested reply trees
-  const formatCommentsToTree = (entities: CommentEntity[]): CommentItem[] => {
-    const commentMap = new Map<string, CommentItem>();
-    const rootComments: CommentItem[] = [];
-
-    entities.forEach((entity) => {
-      const item: CommentItem = {
-        id: entity.id,
-        author: entity.author_name || "Participant",
-        text: entity.body,
-        time: new Date(entity.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        replies: [],
-      };
-      commentMap.set(entity.id, item);
-    });
-
-    entities.forEach((entity) => {
-      const item = commentMap.get(entity.id);
-      if (!item) return;
-
-      if (entity.parent_comment_id && commentMap.has(entity.parent_comment_id)) {
-        const parent = commentMap.get(entity.parent_comment_id);
-        if (parent && parent.replies) {
-          parent.replies.push({
-            id: item.id,
-            author: item.author,
-            text: item.text,
-            time: item.time,
-          });
-        }
-      } else {
-        rootComments.push(item);
-      }
-    });
-
-    return rootComments;
-  };
-
-  // Safe useEffect without synchronous state updates during effect execution
-  useEffect(() => {
-    if (openCommentsId && !commentsMap[openCommentsId]) {
-      if (!isValidUuid(openCommentsId)) {
-        return;
-      }
-
-      api.getComments(openCommentsId)
-        .then((data: CommentEntity[]) => {
-          const formatted = formatCommentsToTree(data);
-          setCommentsMap((prev) => ({ ...prev, [openCommentsId]: formatted }));
-        })
-        .catch((err) => console.error("Failed to load comments:", err));
-    }
-  }, [openCommentsId, commentsMap]);
-
-  const handleToggleReaction = (id: string) => {
-    setReactions((prev) => {
-      const current = prev[id] || { count: 0, reacted: false };
-      const nextReacted = !current.reacted;
-      return {
-        ...prev,
-        [id]: { count: nextReacted ? current.count + 1 : current.count - 1, reacted: nextReacted },
-      };
-    });
-  };
-
-  const handlePostComment = async (id: string) => {
-    const text = commentInputs[id];
-    if (!text || !text.trim()) return;
-
-    if (!isValidUuid(id)) {
-      const fallbackComment: CommentItem = { 
-        id: Date.now().toString(), 
-        author: "You", 
-        text: text.trim(), 
-        time: "Just now", 
-        replies: [] 
-      };
-      setCommentsMap((prev) => ({ ...prev, [id]: [...(prev[id] || []), fallbackComment] }));
-      setCommentInputs((prev) => ({ ...prev, [id]: "" }));
-      return;
-    }
-
-    try {
-      const newComment = await api.createComment({
-        memoir_id: memoirId || "mock-memoir-id",
-        memory_id: id,
-        body: text.trim(),
-      });
-
-      const formattedComment: CommentItem = {
-        id: newComment.id,
-        author: newComment.author_name || "You",
-        text: newComment.body,
-        time: new Date(newComment.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        replies: [],
-      };
-
-      setCommentsMap((prev) => ({ 
-        ...prev, 
-        [id]: [...(prev[id] || []), formattedComment] 
-      }));
-      setCommentInputs((prev) => ({ ...prev, [id]: "" }));
-    } catch (err) {
-      console.error("Failed to post comment:", err);
-    }
-  };
-
-  const handlePostReply = async (memoryId: string, commentId: string, replyText: string) => {
-    if (!replyText || !replyText.trim()) return;
-
-    if (!isValidUuid(memoryId)) {
-      setCommentsMap((prev) => {
-        const memoryComments = prev[memoryId] || [];
-        const updated = memoryComments.map((c) => {
-          if (c.id === commentId) {
-            const replyItem: ReplyItem = { 
-              id: Date.now().toString(), 
-              author: "You", 
-              text: replyText.trim(), 
-              time: "Just now" 
-            };
-            return {
-              ...c,
-              replies: [...(c.replies || []), replyItem]
-            };
-          }
-          return c;
-        });
-        return { ...prev, [memoryId]: updated };
-      });
-      return;
-    }
-
-    try {
-      const newReply = await api.createComment({
-        memoir_id: memoirId || "mock-memoir-id",
-        memory_id: memoryId,
-        parent_comment_id: commentId,
-        body: replyText.trim(),
-      });
-
-      setCommentsMap((prev) => {
-        const memoryComments = prev[memoryId] || [];
-        const updated = memoryComments.map((c) => {
-          if (c.id === commentId) {
-            const replyItem: ReplyItem = {
-              id: newReply.id,
-              author: newReply.author_name || "You",
-              text: newReply.body,
-              time: new Date(newReply.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            };
-            return {
-              ...c,
-              replies: [...(c.replies || []), replyItem]
-            };
-          }
-          return c;
-        });
-        return { ...prev, [memoryId]: updated };
-      });
-    } catch (err) {
-      console.error("Failed to post reply:", err);
-    }
-  };
-
   const handleSearchTyping = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setIsTyping(true);
@@ -266,20 +213,36 @@ export default function FinalMemoirPage() {
     typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 250);
   };
 
-  const filteredMemories = mockMemories.filter((mem) => {
-    const matchesSearch =
-      searchQuery === "" ||
-      mem.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      mem.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (mem.imageCaption && mem.imageCaption.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (mem.title && mem.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
-  });
+  const filteredChapters = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return chapters;
+    return chapters
+      .map((chapter) => ({
+        ...chapter,
+        memories: chapter.memories.filter((m) => {
+          const haystack = [
+            m.title ?? "",
+            m.body_text ?? "",
+            chapter.title,
+            chapter.summary ?? "",
+          ]
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(q);
+        }),
+      }))
+      .filter(
+        (chapter) =>
+          chapter.memories.length > 0 ||
+          chapter.title.toLowerCase().includes(q) ||
+          (chapter.summary ?? "").toLowerCase().includes(q),
+      );
+  }, [chapters, searchQuery]);
 
-  const uniqueChapters = Array.from(new Set(mockMemories.map(m => m.chapter)));
+  const hasRealChapters = chapters.length > 0;
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] font-serif text-stone-900 selection:bg-memory-maroon/20">
+    <div className="min-h-screen bg-[#FAF9F6] dark:bg-memory-bg font-serif text-stone-900 dark:text-memory-ink selection:bg-memory-maroon/20">
       
       <style dangerouslySetInnerHTML={{ __html: `
         .font-serif { font-family: "Times New Roman", Times, serif !important; }
@@ -319,7 +282,7 @@ export default function FinalMemoirPage() {
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row px-6 md:px-10 py-4 gap-8 md:gap-12">
         <main style={{ perspective: "2500px" }} className="flex-1 max-w-3xl">
           <div 
-            className={`relative bg-[#FCFBF8] border border-stone-200/80 px-6 md:px-10 py-6 rounded-sm pb-16 origin-left overflow-hidden ${
+            className={`relative bg-[#FCFBF8] dark:bg-memory-card border border-stone-200/80 dark:border-memory-border px-6 md:px-10 py-6 rounded-sm pb-16 origin-left overflow-hidden ${
               isTurningPage 
                 ? "transition-all duration-700 ease-[cubic-bezier(0.645,0.045,0.355,1)] opacity-0 [transform:rotateY(-130deg)_rotateX(4deg)_scale(0.95)] shadow-2xl brightness-50" 
                 : "transition-opacity duration-500 ease-in opacity-100 [transform:rotateY(0deg)_rotateX(0deg)_scale(1)] shadow-[0_4px_24px_rgba(0,0,0,0.04),inset_0_0_60px_rgba(90,24,39,0.02)] brightness-100"
@@ -331,52 +294,86 @@ export default function FinalMemoirPage() {
             <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-black/5 via-black/0 to-transparent pointer-events-none" style={{ clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }} />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-black/5 via-transparent to-transparent pointer-events-none" style={{ clipPath: 'polygon(0 100%, 0 0, 100% 100%)' }} />
 
-            {filteredMemories.length === 0 ? (
-              <div className="py-16 text-center text-stone-400 font-serif italic">
-                No entries found matching your criteria.
-              </div>
-            ) : (
-              uniqueChapters.map((chapterName) => {
-                const chapterMemories = filteredMemories.filter(m => m.chapter === chapterName);
-                if (chapterMemories.length === 0) return null;
-                const chapterSub = chapterMemories[0].chapterSubtitle;
-
-                return (
-                  <div key={chapterName} className="mb-8">
-                    <div className="mb-3 mt-4 text-left relative flex flex-col">
-                      <div className="w-full h-[2px] bg-stone-800 mb-3"></div>
-                      <h2 className="text-3xl md:text-4xl font-serif text-stone-900 mb-1 leading-tight">
-                        {chapterName}
-                      </h2>
-                      {chapterSub && (
-                        <p className="text-[14px] font-serif italic text-stone-500 mb-3">
-                          {chapterSub}
-                        </p>
-                      )}
-                    </div>
-
-                    {chapterMemories.map((mem) => (
-                      <MemoryCard 
-                        key={mem.id}
-                        mem={mem}
-                        isHighlighted={mem.reactionsCount > 20}
-                        currentReaction={reactions[mem.id] || { count: mem.reactionsCount, reacted: false }}
-                        handleToggleReaction={handleToggleReaction}
-                        isCommentsOpen={openCommentsId === mem.id}
-                        setOpenCommentsId={setOpenCommentsId}
-                        commentsList={commentsMap[mem.id] || []}
-                        commentInputValue={commentInputs[mem.id] || ""}
-                        setCommentInputValue={(val) => setCommentInputs({ ...commentInputs, [mem.id]: val })}
-                        handlePostComment={handlePostComment}
-                        handlePostReply={(commentId, replyText) => handlePostReply(mem.id, commentId, replyText)}
-                      />
-                    ))}
-                  </div>
-                );
-              })
+            {narrativeSections.length > 0 && (
+              <p className="text-[10px] font-sans uppercase tracking-[0.18em] text-stone-400 mb-4 relative z-10">
+                Composed from your family&apos;s own memories
+              </p>
             )}
 
-            {filteredMemories.length > 0 && (
+            {resolvedLoading ? (
+              <div className="py-16 text-center text-stone-400 font-serif italic">
+                Opening the book…
+              </div>
+            ) : resolvedError ? (
+              <div className="py-16 text-center font-sans">
+                <p className="text-stone-700 mb-2">{resolvedError}</p>
+                <p className="text-sm text-stone-400">
+                  If this keeps happening, the memoir may have been shared with a
+                  different account.
+                </p>
+              </div>
+            ) : !hasRealChapters ? (
+              <div className="py-16 text-center font-sans">
+                <p className="text-xl font-serif text-stone-700 mb-3">
+                  This memoir has no chapters yet
+                </p>
+                <p className="text-sm text-stone-500 max-w-sm mx-auto leading-relaxed">
+                  Your memories are safe. Open your dashboard and choose
+                  &ldquo;Organize Timeline&rdquo; to group them into chapters —
+                  you&apos;ll get to review everything before it changes.
+                </p>
+              </div>
+            ) : filteredChapters.length === 0 ? (
+              <div className="py-16 text-center text-stone-400 font-serif italic">
+                No entries found matching your search.
+              </div>
+            ) : (
+              filteredChapters.map((chapter) => (
+                <div key={chapter.id} className="mb-8">
+                  <div className="mb-3 mt-4 text-left relative flex flex-col">
+                    <div className="w-full h-[2px] bg-stone-800 mb-3"></div>
+                    <h2 className="text-3xl md:text-4xl font-serif text-stone-900 dark:text-memory-ink mb-1 leading-tight">
+                      {chapter.title}
+                    </h2>
+                    {chapter.summary && (
+                      <>
+                        <p className="text-[15px] font-serif leading-relaxed text-stone-700 my-3 whitespace-pre-wrap">
+                          {chapter.summary}
+                        </p>
+                        {/* AI-written prose about a real person. Labelled so a
+                            reader can tell whose words they are reading, and so
+                            nobody assumes the family wrote it. */}
+                        <p className="text-[9px] font-sans uppercase tracking-[0.18em] text-stone-400 mb-3">
+                          Drafted with AI · editable by the family
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  {narrativeSections.some((s) => s.chapter_id === chapter.id) && (
+                    <div className="mb-6">
+                      <NarrativeSectionsView
+                        memoirId={memoirId}
+                        sections={narrativeSections.filter((s) => s.chapter_id === chapter.id)}
+                        showLabel={false}
+                      />
+                    </div>
+                  )}
+
+                  {chapter.memories.length === 0 ? (
+                    <p className="text-sm font-serif italic text-stone-400 py-2">
+                      No memories recorded in this chapter yet.
+                    </p>
+                  ) : (
+                    chapter.memories.map((mem) => (
+                      <RealMemoryCard key={mem.id} memoirId={memoirId} memory={mem} />
+                    ))
+                  )}
+                </div>
+              ))
+            )}
+
+            {hasRealChapters && filteredChapters.length > 0 && (
               <div className="mt-16 flex flex-col items-center justify-center opacity-90 pb-8">
                 <div 
                   className="relative w-20 h-20 bg-memory-maroon flex items-center justify-center cursor-default group"
@@ -405,10 +402,11 @@ export default function FinalMemoirPage() {
           </div>
         </main>
 
-        <MemoirSidebar 
+        <MemoirSidebar
           activeView={activeView}
           setActiveView={setActiveView}
           mockShortQuotes={mockShortQuotes}
+          chapters={chapters}
         />
       </div>
 

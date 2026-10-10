@@ -2,12 +2,16 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 interface DashboardSidebarProps {
   setShowContributors: React.Dispatch<React.SetStateAction<boolean>>;
+  memoryCount: number;
 }
 
-export function DashboardSidebar({ setShowContributors }: DashboardSidebarProps) {
+export function DashboardSidebar({ setShowContributors, memoryCount }: DashboardSidebarProps) {
+  const router = useRouter();
+
   return (
     <aside className="w-68 bg-memory-primary text-memory-light p-6 hidden lg:flex flex-col justify-start sticky top-0 h-screen z-20 shadow-[inset_-12px_0_25px_rgba(0,0,0,0.25)] border-r border-[#240d14]">
       <div>
@@ -24,7 +28,9 @@ export function DashboardSidebar({ setShowContributors }: DashboardSidebarProps)
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E")` }}
           >
             <span className="font-sans text-[11px] text-stone-500 leading-tight">Archive Holds</span>
-            <span className="font-sans uppercase tracking-[0.15em] text-[13px] text-memory-primary font-bold mt-1">20 Memories</span>
+            <span className="font-sans uppercase tracking-[0.15em] text-[13px] text-memory-primary font-bold mt-1">
+              {memoryCount} {memoryCount === 1 ? "Memory" : "Memories"}
+            </span>
           </div>
         </div>
 
@@ -48,14 +54,24 @@ export function DashboardSidebar({ setShowContributors }: DashboardSidebarProps)
             View Archive
           </motion.a>
 
-          <motion.button 
+          <motion.button
             type="button"
-            onClick={() => setShowContributors(prev => !prev)} 
+            onClick={() => setShowContributors(prev => !prev)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className="w-36 ml-6 text-center flex items-center justify-center text-stone-800 bg-white hover:bg-[#FAF7F2] px-4 py-3 rounded-sm shadow-sm transition-all border-l-2 border-stone-400 cursor-pointer transform -rotate-1 hover:rotate-0"
           >
             Contributors
+          </motion.button>
+
+          <motion.button
+            type="button"
+            onClick={() => router.push("/profile")}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-36 ml-16 text-center flex items-center justify-center text-stone-800 bg-white hover:bg-[#FAF7F2] px-4 py-3 rounded-sm shadow-sm transition-all border-l-2 border-stone-400 cursor-pointer transform rotate-1 hover:rotate-0"
+          >
+            My Profile
           </motion.button>
         </nav>
       </div>

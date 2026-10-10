@@ -9,20 +9,6 @@ export function useAuth() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
-  const processPendingMemoir = async () => {
-    const pendingMemoirData = localStorage.getItem("pending_memoir");
-    if (pendingMemoirData) {
-      try {
-        const memoirPayload = JSON.parse(pendingMemoirData);
-        const createdMemoir = await api.createMemoir(memoirPayload);
-        localStorage.setItem("active_memoir", JSON.stringify(createdMemoir));
-        localStorage.removeItem("pending_memoir");
-      } catch (err) {
-        console.error("Failed to auto-create memoir during onboarding:", err);
-      }
-    }
-  };
-
   const startAuthAction = () => {
     setLoading(true);
     setServerError(null);
@@ -41,42 +27,36 @@ export function useAuth() {
         password: data.password,
       });
 
-      // --- SMART MEMOIR CHECK & CREATION LOGIC ---
+      // --- WHERE DOES THIS USER LAND? ---
+      //
+      // Memoir creation itself is no longer silent background work here --
+      // the first-memoir screen is where that explicit, deliberate moment
+      // happens now (see app/first-memoir/page.tsx). This check only decides
+      // which screen to send the user to.
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // Check the database: Does this user already have memoirs?
         const memoirs = await api.getUserMemoirs();
-        
-        if (!memoirs || memoirs.length === 0) {
-          const pendingMemoirStr = localStorage.getItem("pending_memoir");
-          
-          if (pendingMemoirStr) {
-            const pendingMemoir = JSON.parse(pendingMemoirStr);
-            const createdMemoir = await api.createMemoir(pendingMemoir);
-            const activeMemoir = createdMemoir.data || createdMemoir;
-            
-            localStorage.setItem("active_memoir", JSON.stringify(activeMemoir));
-            localStorage.removeItem("pending_memoir");
-          } else {
-            // Edge case: Logged in, no memoirs in DB, AND skipped onboarding.
-            // Silently redirect to start onboarding naturally.
-            router.push("/memory-subject-selection");
-            return false; 
-          }
-        } else {
-          // MEMOIRS EXIST: Load their existing memoir.
-          localStorage.setItem("active_memoir", JSON.stringify(memoirs[0]));
-          localStorage.removeItem("pending_memoir");
-        }
-      } catch (memoirCheckError) {
-        console.error("Could not verify or create memoir during login", memoirCheckError);
-      }
-      // ------------------------------------------
 
-      // 3. Everything is ready, send them to the dashboard
-      router.push("/dashboard");
-      return true;
+        if (!memoirs || memoirs.length === 0) {
+          // No memoir yet, whether or not onboarding left a pending draft --
+          // the first-memoir screen reads `pending_memoir` itself and
+          // pre-fills from it if present.
+          router.push("/first-memoir");
+          return true;
+        }
+
+        // Returning user with an existing memoir.
+        localStorage.setItem("active_memoir", JSON.stringify(memoirs[0]));
+        localStorage.removeItem("pending_memoir");
+        router.push("/dashboard");
+        return true;
+      } catch (memoirCheckError) {
+        console.error("Could not verify this account's memoirs after login", memoirCheckError);
+        // Login itself succeeded -- send them somewhere that can recover
+        // (the first-memoir screen tolerates having nothing pre-filled)
+        // rather than stranding them on the login form.
+        router.push("/first-memoir");
+        return true;
+      }
       
     } catch (err: unknown) {
       const errorMessage =
@@ -104,7 +84,10 @@ export function useAuth() {
       // required -- `authenticated` just tells us whether that happened, we
       // never see or handle the token.
       if (res.authenticated) {
-        await processPendingMemoir();
+        // Memoir creation happens explicitly on the first-memoir screen now,
+        // not silently here -- `pending_memoir` (if onboarding left one) is
+        // still in localStorage for that screen to read. The caller
+        // (SignupForm) navigates there on `true`.
         return true;
       } else {
         // FIX: Registration successful, but awaiting email verification.

@@ -10,9 +10,14 @@ import { BookCoverExperience } from "@/features/dashboard/components/BookCoverEx
 import { DashboardSidebar } from "@/features/dashboard/components/DashboardSidebar";
 import { DashboardHeader } from "@/features/dashboard/components/DashboardHeader";
 import { MemoryInputSection } from "@/features/dashboard/components/MemoryInputSection";
+import { EmptyDashboard } from "@/features/dashboard/components/EmptyDashboard";
 import { MemoryArchive } from "@/features/dashboard/components/MemoryArchive";
 import { ContributorsOverlay } from "@/features/dashboard/components/ContributorsOverlay";
 import { ArchiveChatWidget } from "@/features/dashboard/components/ArchiveChatWidget"; // NEW
+import { ProposalReview } from "@/features/dashboard/components/ProposalReview";
+import { PublishPanel } from "@/features/dashboard/components/PublishPanel";
+import { NarrativePanel } from "@/features/dashboard/components/NarrativePanel";
+import type { OrganizationProposal } from "@/features/dashboard/types/organization";
 
 // Custom Hooks
 import { useCaptureMemory } from "@/hooks/useCaptureMemory";
@@ -22,7 +27,33 @@ export default function OwnerDashboard() {
   const [memoirId, setMemoirId] = useState<string>("");
   const [name, setName] = useState("");
   const [dates, setDates] = useState("");
-  const [ownerName, setOwnerName] = useState("");
+  // Derived during the initial render rather than in an effect.
+//
+// This reads localStorage and then called setState synchronously inside an
+// effect body, which React flags as a cascading-render hazard (and which
+// `npm run lint` failed on). A lazy useState initializer runs once, during the
+// first render, and produces the same result with no extra render pass.
+//
+// Guarded for SSR: localStorage does not exist on the server, so this returns
+// "" there and the real value is picked up on the client's first render.
+const [ownerName] = useState<string>(() => {
+  if (typeof window === "undefined") return "";
+  try {
+    const storedUser =
+      window.localStorage.getItem("user_profile") ||
+      window.localStorage.getItem("user_name");
+    if (!storedUser) return "";
+    try {
+      const parsed = JSON.parse(storedUser);
+      return String(parsed?.name || parsed?.fullName || storedUser);
+    } catch {
+      // Not JSON -- the value is a bare name string.
+      return storedUser;
+    }
+  } catch {
+    return "";
+  }
+});
 
   const [activeInput, setActiveInput] = useState<"none" | "text" | "audio" | "media" | "combined">("none");
   const [isTextExpanded, setIsTextExpanded] = useState(false); 
@@ -30,11 +61,25 @@ export default function OwnerDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showContributors, setShowContributors] = useState(false);
   const [isLinkCopied, setIsLinkCopied] = useState(false);
+  const [showPublishPanel, setShowPublishPanel] = useState(false);
+  const [showNarrativePanel, setShowNarrativePanel] = useState(false);
   const [expandedStacks, setExpandedStacks] = useState<string[]>([]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [chapters, setChapters] = useState<any[]>([]);
   const [isGeneratingChapters, setIsGeneratingChapters] = useState(false);
+
+  // Organization proposal state.
+  //
+  // The backend produces a proposal that the owner reviews and then confirms.
+  // Nothing is written to chapters until confirmProposal is called, so this is
+  // a genuine review step rather than a confirmation dialog for something that
+  // already happened.
+  const [proposal, setProposal] = useState<OrganizationProposal | null>(null);
+  const [isApplyingProposal, setIsApplyingProposal] = useState(false);
+  const [organizeStage, setOrganizeStage] = useState<string | null>(null);
+  const [organizeStages, setOrganizeStages] = useState<string[]>([]);
+  const [organizeError, setOrganizeError] = useState<string | null>(null);
 
   // 1. Resolve active memoir details and owner profile.
   //
@@ -50,20 +95,6 @@ export default function OwnerDashboard() {
   // current token actually belongs to) and correcting the cached value is
   // what actually fixes that, rather than just hiding the symptom.
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user_profile") || localStorage.getItem("user_name");
-      if (storedUser) {
-        try {
-          const userParsed = JSON.parse(storedUser);
-          setOwnerName(userParsed.name || userParsed.fullName || storedUser);
-        } catch {
-          setOwnerName(storedUser);
-        }
-      }
-    } catch (e) {
-      console.error("Failed to load user profile", e);
-    }
-
     const applyMemoir = (data: Record<string, unknown>) => {
       if (typeof data.id === "string") setMemoirId(data.id);
       if (typeof data.subject_name === "string") setName(data.subject_name);
@@ -157,7 +188,11 @@ export default function OwnerDashboard() {
       try {
         const data = await api.getChapters(memoirId);
         if (data) setChapters(data);
-      } catch (e) {
+      } catch (err) {
+        // Showing an empty timeline is recoverable and expected on a memoir
+        // that hasn't been organized yet. Logged rather than surfaced, since a
+        // 404 here means "no chapters", not "something is broken".
+        console.warn("Could not load chapters", err);
         setChapters([]);
       }
     };
@@ -195,36 +230,96 @@ export default function OwnerDashboard() {
     }
   };
 
-  // /organize runs in the background (the model call takes 10-20s), so
-  // triggering it only returns a 202 -- the actual chapters have to be
-  // polled for via /organize/status, then loaded with getChapters().
+  // /organize runs in the background (a multi-agent pipeline over every memory
+  // takes well over 10s), so triggering it returns a 202 immediately.
+  //
+  // The pipeline produces a REVIEWABLE PROPOSAL, not chapters. Three states:
+  //   1. poll /organize/status until 'ready'
+  //   2. fetch the proposal and show it to the owner
+  //   3. the owner confirms -> /organize/apply writes the chapters
+  //
+  // Step 3 is deliberately a separate user action. The server holds the plan and
+  // the client holds only its id, so nothing about what gets written can be
+  // influenced by this page.
   const handleGenerateTimeline = async () => {
     if (!memoirId) return;
     setIsGeneratingChapters(true);
+    setOrganizeError(null);
     try {
       await api.generateTimeline(memoirId);
 
-      const maxAttempts = 20;
+      // 20 attempts x 3s = 60s of polling. A large memoir runs several agent
+      // calls, so this is a floor rather than a ceiling -- the backend also
+      // synthesizes a 'stalled' status past its own threshold, which we surface
+      // below rather than spinning forever.
+      const maxAttempts = 40;
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
         const statusRes = await api.getOrganizeStatus(memoirId);
+        if (statusRes.current_stage) {
+          setOrganizeStage(statusRes.current_stage);
+        }
+        if (statusRes.stages.length > 0) {
+          setOrganizeStages(statusRes.stages);
+        }
+
         if (statusRes.status === "ready") {
-          const data = await api.getChapters(memoirId);
-          if (data) setChapters(data);
-          refreshFeed();
+          const proposal = await api.getOrganizeProposal(memoirId);
+          if (proposal?.data) {
+            setProposal(proposal.data);
+          } else {
+            // Ready but no proposal: the run produced nothing reviewable.
+            setOrganizeError(
+              "The AI finished but there's nothing to review. Please try again."
+            );
+          }
           break;
         }
+
         if (statusRes.status === "failed" || statusRes.status === "stalled") {
-          console.error("Organizing failed:", statusRes.error_message);
+          setOrganizeError(
+            statusRes.error_message ??
+              "Organizing didn't finish. You can try again."
+          );
           break;
         }
       }
     } catch (e) {
-      console.error("Failed to generate timeline", e);
+      setOrganizeError(
+        e instanceof Error ? e.message : "Failed to generate timeline"
+      );
     } finally {
       setIsGeneratingChapters(false);
+      setOrganizeStage(null);
     }
+  };
+
+  // Owner confirms the reviewed proposal. Only now are chapters written.
+  const handleApplyProposal = async () => {
+    if (!memoirId || !proposal) return;
+    setIsApplyingProposal(true);
+    setOrganizeError(null);
+    try {
+      await api.applyOrganizationProposal(memoirId, proposal.proposal_id);
+      const data = await api.getChapters(memoirId);
+      if (data) setChapters(data);
+      setProposal(null);
+      refreshFeed();
+    } catch (e) {
+      setOrganizeError(
+        e instanceof Error ? e.message : "Could not apply the proposal"
+      );
+    } finally {
+      setIsApplyingProposal(false);
+    }
+  };
+
+  const handleDiscardProposal = () => {
+    // Nothing to call: the server supersedes a pending proposal automatically
+    // when the next one is generated, and an abandoned proposal simply never
+    // gets confirmed.
+    setProposal(null);
   };
 
   const handleRenameChapter = async (chapterId: string, newTitle: string) => {
@@ -248,6 +343,31 @@ export default function OwnerDashboard() {
     }
   };
 
+  // Almost nothing on screen until the first memory exists -- no sidebar, no
+  // search, no publish button, no "0 memories". See EmptyDashboard.
+  const showEmptyState = Boolean(memoirId) && !feedLoading && !feedError && memories.length === 0;
+
+  if (showEmptyState) {
+    return (
+      <BookCoverExperience userName={ownerName || "Author"}>
+        <EmptyDashboard
+          name={name}
+          dates={dates}
+          activeInput={activeInput} setActiveInput={setActiveInput}
+          isTextExpanded={isTextExpanded} setIsTextExpanded={setIsTextExpanded}
+          isAssembling={isAssembling}
+          inputTitle={draft.title} setInputTitle={(val) => setDraft({ ...draft, title: val })}
+          inputDate={draft.occurred_start || ""} setInputDate={(val) => setDraft({ ...draft, occurred_start: val })}
+          inputContent={draft.body_text || ""} setInputContent={(val) => setDraft({ ...draft, body_text: val })}
+          photoFile={photoFile} setPhotoFile={setPhotoFile}
+          recording={recording} audioUrl={audioUrl}
+          startRecording={startRecording} stopRecording={stopRecording} clearRecording={clearRecording}
+          handleLocalSubmit={handleSubmit}
+        />
+      </BookCoverExperience>
+    );
+  }
+
   return (
     <BookCoverExperience userName={ownerName || "Author"}>
       <div className="min-h-screen bg-memory-bg text-stone-900 font-sans selection:bg-memory-primary/20 flex overflow-x-hidden relative">
@@ -269,13 +389,15 @@ export default function OwnerDashboard() {
         </AnimatePresence>
 
         <ContributorsOverlay showContributors={showContributors} setShowContributors={setShowContributors} contributorNames={contributorNames} />
-        <DashboardSidebar setShowContributors={setShowContributors} />
+        <DashboardSidebar setShowContributors={setShowContributors} memoryCount={memories.length} />
 
         <main className="flex-1 flex flex-col min-h-screen pb-32">
-          <DashboardHeader 
+          <DashboardHeader
             name={name} setName={setName} dates={dates} setDates={setDates}
             searchQuery={searchQuery} setSearchQuery={setSearchQuery}
             handleCopyLink={handleCopyLink} isLinkCopied={isLinkCopied}
+            onLockClick={() => setShowPublishPanel(true)}
+            onNarrativeClick={() => setShowNarrativePanel(true)}
           />
 
           <div className="max-w-3xl mx-auto w-full px-6 pt-10">
@@ -302,15 +424,47 @@ export default function OwnerDashboard() {
             ) : (
               <MemoryArchive 
                 expandedStacks={expandedStacks} toggleStack={toggleStack} 
-                mockMemories={memories as React.ComponentProps<typeof MemoryArchive>["mockMemories"]} chapters={chapters} isGenerating={isGeneratingChapters}
+                mockMemories={memories as React.ComponentProps<typeof MemoryArchive>["mockMemories"]}
+                chapters={chapters}
+                isGenerating={isGeneratingChapters}
+                organizeStage={organizeStage}
+                organizeStages={organizeStages}
+                organizeError={organizeError}
                 onGenerateTimeline={handleGenerateTimeline} onRenameChapter={handleRenameChapter} onMemoryOptionSelect={handleMemoryOptionSelect}
               />
             )}
+
+            {/* Proposal review. Rendered above the archive so it reads as a
+                decision the owner is being asked to make, not a footnote on
+                the timeline. Nothing has been written at this point — the
+                chapters below are still whatever they were before. */}
+            <AnimatePresence>
+              {proposal && (
+                <ProposalReview
+                  proposal={proposal}
+                  onApply={handleApplyProposal}
+                  onDiscard={handleDiscardProposal}
+                  isApplying={isApplyingProposal}
+                />
+              )}
+            </AnimatePresence>
           </div>
         </main>
 
         {/* Clean, modular chat widget */}
         {memoirId && <ArchiveChatWidget memoirId={memoirId} />}
+
+        <PublishPanel
+          memoirId={memoirId}
+          open={showPublishPanel}
+          onClose={() => setShowPublishPanel(false)}
+        />
+
+        <NarrativePanel
+          memoirId={memoirId}
+          open={showNarrativePanel}
+          onClose={() => setShowNarrativePanel(false)}
+        />
 
       </div>
     </BookCoverExperience>
