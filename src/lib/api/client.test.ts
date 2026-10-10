@@ -54,8 +54,8 @@ describe("parseErrorDetail", () => {
     const detail = parseErrorDetail(
       {
         detail: [
-          { loc: ["body", "title"], msg: "Field required", type: "missing" },
-          { loc: ["body", "body_text"], msg: "Too long", type: "value_error" },
+          { loc: ["body", "title"], msg: "Field required" },
+          { loc: ["body", "body_text"], msg: "Too long" },
         ],
       },
       "Request failed",
@@ -166,7 +166,7 @@ describe("apiFetch credentials", () => {
     // is a genuinely confusing failure to debug.
     fetchMock.mockResolvedValue(jsonResponse({ success: true, data: { id: "m1" } }));
 
-    await api.createMemoir({ subject_name: "Test" }).catch(() => undefined);
+    await api.createMemoir({ subject_name: "Test", subject_is_living: true }).catch(() => undefined);
 
     const [, init] = fetchMock.mock.calls[0];
     expect(init.credentials).toBe("include");
@@ -188,7 +188,7 @@ describe("apiFetch credentials", () => {
   it("throws with the backend's message on a 500", async () => {
     fetchMock.mockResolvedValue(jsonResponse({ detail: "Upstream unavailable." }, { status: 500 }));
 
-    await expect(api.createMemoir({ subject_name: "Test" })).rejects.toThrow(
+    await expect(api.createMemoir({ subject_name: "Test", subject_is_living: true })).rejects.toThrow(
       /Upstream unavailable/,
     );
   });
@@ -200,7 +200,7 @@ describe("apiFetch credentials", () => {
     // stored.
     fetchMock.mockResolvedValue(jsonResponse({ detail: "Memoir not found." }, { status: 404 }));
 
-    await expect(api.createMemoir({ subject_name: "Test" })).rejects.toThrow();
+    await expect(api.createMemoir({ subject_name: "Test", subject_is_living: true })).rejects.toThrow();
   });
 });
 
