@@ -564,6 +564,20 @@ export const api = {
     return json.data || json;
   },
 
+  // Points the memoir at an already-uploaded photo (upload it first via
+  // getPresignedUrl + registerMediaMetadata, same as any other memory photo).
+  async setMemoirCover(memoirId: string, mediaId: string): Promise<string | null> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/cover`, {
+      method: "PUT",
+      body: JSON.stringify({ media_id: mediaId }),
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to set cover photo"));
+    }
+    return (await res.json()).data?.cover_image_url ?? null;
+  },
+
   // Publishing -- required once before a share link can be created (the
   // backend 409s on createShareLink otherwise). Idempotent server-side, so
   // it's safe to call this on every "copy link" click.

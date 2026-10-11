@@ -98,8 +98,8 @@ export default function MemoirPage() {
 
       <Hero
         variant="reader"
-        desktopSrc="/images/garden-portrait.jpg"
-        alt="A portrait photograph for this memoir."
+        desktopSrc={memoirSummary?.cover_image_url}
+        alt={memoirSummary?.subject_name ? `A photograph of ${memoirSummary.subject_name}.` : "A photograph for this memoir."}
         eyebrow="A life, remembered together"
         title={memoirSummary?.subject_name ?? "This memoir"}
         description={dates ? `${dates}` : "A life, gathered from the people who loved it."}

@@ -13,7 +13,7 @@ import { LoadingState, ErrorState } from "@/components/ui/ScreenStates";
 import { MemoryCard } from "@/features/dashboard/components/MemoryCard";
 import { MemoryInputSection } from "@/features/dashboard/components/MemoryInputSection";
 import { ContributorsOverlay } from "@/features/dashboard/components/ContributorsOverlay";
-import { useActiveMemoir } from "@/features/dashboard/hooks";
+import { useActiveMemoir, useCoverPhotoUpload } from "@/features/dashboard/hooks";
 import { useMemoirFeed } from "@/hooks/useMemoirFeed";
 import { useCaptureMemory } from "@/hooks/useCaptureMemory";
 import { api, Participant } from "@/lib/api/client";
@@ -25,7 +25,8 @@ const TABS = [
 ];
 
 export default function MemoriesPage() {
-  const { memoirId, name, dates } = useActiveMemoir();
+  const { memoirId, name, dates, coverImageUrl, setCoverImageUrl } = useActiveMemoir();
+  const cover = useCoverPhotoUpload(memoirId, setCoverImageUrl);
   const { memories, loading: feedLoading, error: feedError, refreshFeed } = useMemoirFeed(memoirId);
   const [composerOpen, setComposerOpen] = useState(false);
   const [showContributors, setShowContributors] = useState(false);
@@ -69,12 +70,15 @@ export default function MemoriesPage() {
     <main>
       <AppTopBar />
       <IdentityStrip
-        portraitSrc="/images/garden-portrait.jpg"
-        portraitAlt={name ? `A portrait associated with ${name}'s memoir` : "A portrait photograph"}
+        portraitSrc={coverImageUrl}
+        portraitAlt={name ? `A photograph of ${name}` : "A photograph of this memoir's subject"}
         eyebrow="A life, coming together"
         name={name || "Their memoir"}
         subtitle={dates ? `${dates} · Family memoir` : "Family memoir"}
+        onEditPortrait={cover.trigger}
+        portraitUploading={cover.uploading}
       />
+      {cover.error && <p className="max-w-[1440px] mx-auto px-6 md:px-16 -mt-4 mb-4 text-xs text-destructive">{cover.error}</p>}
 
       <div className="max-w-[1440px] mx-auto px-6 md:px-16">
         <SectionTabs tabs={TABS} active="Memories" />

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import Link from "next/link";
 import { api, Participant } from "@/lib/api/client";
 import { Button } from "@/components/ui/Button";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
@@ -26,13 +27,22 @@ export function ContributorsOverlay({ show, onClose, memoirId, participants, par
   const [copying, setCopying] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
+  // A share link with no password set yet is inert server-side -- unlock
+  // always fails closed. Copying it anyway would hand out a link that
+  // silently doesn't work, so this is surfaced instead of hidden.
+  const [needsPassword, setNeedsPassword] = useState(false);
 
   const handleCopyLink = async () => {
     setCopying(true);
     setCopyError(null);
+    setNeedsPassword(false);
     try {
       await api.publishMemoir(memoirId);
       const link = await api.createShareLink(memoirId);
+      if (!link?.has_password) {
+        setNeedsPassword(true);
+        return;
+      }
       if (link?.url) {
         await navigator.clipboard.writeText(link.url);
         setCopied(true);
@@ -67,9 +77,19 @@ export function ContributorsOverlay({ show, onClose, memoirId, participants, par
             {copying ? "Preparing link…" : copied ? "Link copied" : "Copy invite link"}
           </Button>
           {copyError && <p className="mt-2 text-xs text-destructive">{copyError}</p>}
-          <p className="mt-2 text-xs text-muted-foreground">
-            Anyone with this link and the password you set can read and comment.
-          </p>
+          {needsPassword ? (
+            <p className="mt-2 text-xs text-foreground">
+              This link needs a password before it&rsquo;ll work.{" "}
+              <Link href="/chapters" className="underline underline-offset-2 hover:text-primary">
+                Set one from Review &amp; publish
+              </Link>
+              , then come back here to copy it.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Anyone with this link and the password you set can read and comment.
+            </p>
+          )}
         </div>
 
         <div className="pt-6 border-t border-border">

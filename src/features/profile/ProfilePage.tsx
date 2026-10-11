@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { api, OwnerMemoirSummary, OwnerProfile } from "@/lib/api/client";
+import { useAuth } from "@/features/auth/hooks";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/ScreenStates";
@@ -33,9 +34,16 @@ function formatUpdated(iso: string): string {
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { handleLogout } = useAuth();
   const [profile, setProfile] = useState<OwnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const onLogout = async () => {
+    setLoggingOut(true);
+    await handleLogout();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -76,13 +84,21 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-background px-6 md:px-12 py-12">
       <div className="max-w-2xl mx-auto">
-        <div className="mb-10">
+        <div className="mb-10 flex items-center justify-between">
           <button
             type="button"
             onClick={() => router.push("/memories")}
-            className="text-muted-foreground hover:text-muted-foreground text-sm transition-colors cursor-pointer"
+            className="text-muted-foreground hover:text-foreground text-sm transition-colors cursor-pointer"
           >
             ← Back
+          </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            disabled={loggingOut}
+            className="text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {loggingOut ? "Signing out…" : "Log out"}
           </button>
         </div>
 

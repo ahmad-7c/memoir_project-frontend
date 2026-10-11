@@ -3,16 +3,9 @@
 All images sourced from Unsplash or Pexels under their respective free licences, which permit commercial use without attribution (credit given here regardless, as good practice).
 
 ## scattered-photos-linen-desktop.jpg
-Sources (composite of two Pexels photos):
-1. https://www.pexels.com/photo/cereals-and-croissant-in-bed-10060580/ — Photographer: Nataliya Vaitkevich — Licence: Pexels Licence
-2. https://www.pexels.com/photo/vintage-black-and-white-cityscape-postcards-37947890/ — Photographer: Fiona Murray — Licence: Pexels Licence
-Note: Replaces a prior candidate that was rejected for containing several identifiable faces (a man holding a baby, children, a group portrait, men at a table). Photo 1 is a warm beige linen bed-sheet flat-lay with soft folds and a natural diagonal sunlight/shadow band; a clean, food-free region of it was cropped for the empty ~40% left side. Photo 2 is a fanned pile of black-and-white vintage postcards showing only aerial cityscape, harbor, and monument views (Marseille architecture/water scenes) — zero people or faces anywhere in the source. The postcard pile was cropped, warm-toned to match the linen's palette, and composited onto the right ~60% of the linen with a soft feathered blend and a faint grounding shadow at the seam. Every postcard in the final crop was individually zoomed and inspected; the content is buildings, water, and skyline only.
-
 ## scattered-photos-linen-phone.jpg
-Sources (composite of two Pexels photos, same pair as the desktop crop above):
-1. https://www.pexels.com/photo/cereals-and-croissant-in-bed-10060580/ — Photographer: Nataliya Vaitkevich — Licence: Pexels Licence
-2. https://www.pexels.com/photo/vintage-black-and-white-cityscape-postcards-37947890/ — Photographer: Fiona Murray — Licence: Pexels Licence
-Note: Same two source photos as the desktop crop, recombined in a portrait arrangement — clean linen (photo 1) fills the top ~60% of the frame with a soft diagonal fold line, and the same face-free cityscape postcard pile (photo 2) is compressed into the bottom third with a soft feathered blend into the fabric. No faces anywhere in the source content (postcards show only cityscape/harbor/monument views).
+Source: supplied directly by the project owner (`landingpagecoverimage.png`, provided 2026-10-11), not sourced by Claude. Desktop is the image as provided, full-frame. Phone is a crop of its left ~55% (the empty linen, light streak, and lavender sprig), keeping the same file cropped rather than recomposed.
+Note: this image contains several identifiable faces (a bride and groom, a baby, an elderly couple, a graduate, a family at a birthday table) — a departure from this project's own zero-identifiable-faces policy applied to every other image in this document. Flagged explicitly to the owner before use; they confirmed using it as-is is their call. Not independently re-sourced or face-blurred per that decision.
 
 ## garden-portrait.jpg
 Source: https://www.pexels.com/photo/charming-springtime-cottage-with-cherry-blossom-tree-32099825/

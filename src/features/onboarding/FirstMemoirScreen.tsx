@@ -1,9 +1,11 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { Camera } from "lucide-react";
 import { api } from "@/lib/api/client";
+import { uploadMediaAsset } from "@/hooks/useMediaUpload";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
@@ -47,6 +49,16 @@ export default function FirstMemoirScreen() {
   const [isAlive, setIsAlive] = useState(draft.subject_is_living ?? false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
 
   // Same real-world constraint as the onboarding version of this form: no
   // future birth dates, and a date of passing has to fall between birth and
@@ -94,6 +106,21 @@ export default function FirstMemoirScreen() {
         description: draft.description,
       });
       const memoir = created.data || created;
+
+      // Best-effort: the memoir itself is already created at this point, so
+      // a cover-photo upload failure (network blip, storage hiccup) should
+      // never strand the owner here -- they can always add one later from
+      // /memories, exactly the same upload path.
+      if (photoFile && memoir?.id) {
+        try {
+          const mediaId = await uploadMediaAsset(memoir.id, photoFile, photoFile.name, photoFile.type, "photo");
+          const coverUrl = await api.setMemoirCover(memoir.id, mediaId);
+          memoir.cover_image_url = coverUrl;
+        } catch (photoErr) {
+          console.error("Could not set the cover photo", photoErr);
+        }
+      }
+
       localStorage.setItem("active_memoir", JSON.stringify(memoir));
       localStorage.removeItem("pending_memoir");
       router.push("/memories");
@@ -124,6 +151,32 @@ export default function FirstMemoirScreen() {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 text-left">
+          <div className="flex justify-center mb-2">
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handlePhotoChange}
+            />
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              aria-label="Add a cover photo"
+              className="relative w-20 h-20 rounded-full bg-secondary overflow-hidden flex items-center justify-center cursor-pointer border border-border hover:border-foreground/30 transition-colors"
+            >
+              {photoPreview ? (
+                /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not an optimizable remote asset */
+                <img src={photoPreview} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Camera size={18} className="text-muted-foreground" />
+              )}
+            </button>
+          </div>
+          <p className="text-center text-xs text-muted-foreground -mt-4">
+            {photoPreview ? "Looking good." : "Add a photo of them (optional)."}
+          </p>
+
           <div>
             <Label htmlFor="first-memoir-name">Their name</Label>
             <Input

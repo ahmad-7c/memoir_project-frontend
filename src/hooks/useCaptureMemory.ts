@@ -13,6 +13,7 @@ import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api/client";
 import { useLocalStorageDraft } from "@/hooks/useLocalStorageDraft";
 import { memoryInputSchema } from "@/lib/validations/memory";
+import { uploadMediaAsset } from "@/hooks/useMediaUpload";
 export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
   const [draft, setDraft] = useLocalStorageDraft(`memory_draft_${memoirId}`, {
     title: "",
@@ -166,61 +167,6 @@ export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
   };
 
   /**
-   * Helper function to handle presigned URL requests, direct storage uploads,
-   * and metadata registration for any media asset type.
-   */
-  const uploadMediaAsset = async (
-    currentMemoirId: string,
-    file: Blob,
-    filename: string,
-    mimeType: string,
-    kind: "photo" | "audio",
-    caption?: string,
-    durationMs?: number | null,
-  ): Promise<string> => {
-    const presignRes = await api.getPresignedUrl({
-      memoir_id: currentMemoirId,
-      filename,
-      file_type: mimeType,
-      kind,
-    });
-
-    const uploadUrl =
-      presignRes.upload_url || presignRes.signed_url || presignRes.url;
-    const storageKey = presignRes.storage_key || presignRes.path;
-
-    if (!uploadUrl || !storageKey) {
-      throw new Error(`Failed to retrieve upload parameters for ${kind}.`);
-    }
-
-    const uploadRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": mimeType },
-      body: file,
-    });
-
-    if (!uploadRes.ok) {
-      const errorText = await uploadRes.text();
-      throw new Error(
-        `Failed to upload ${kind} to storage bucket: ${errorText}`,
-      );
-    }
-
-    const metaRes = await api.registerMediaMetadata({
-      memoir_id: currentMemoirId,
-      storage_key: storageKey,
-      kind,
-      mime_type: mimeType,
-      byte_size: file.size,
-      original_filename: filename,
-      caption,
-      duration_ms: durationMs,
-    });
-
-    return metaRes.id;
-  };
-
-  /**
    * Handles form submission, orchestrates file uploads, and saves the final memory entry.
    */
   const handleSubmit = async (e: React.FormEvent) => {
@@ -277,8 +223,7 @@ export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
           photoFile.name,
           photoFile.type,
           "photo",
-          photoCaption,
-          null,
+          { caption: photoCaption, durationMs: null },
         );
         mediaAssetIds.push(photoId);
       }
@@ -293,8 +238,7 @@ export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
           audioFileName,
           "audio/webm",
           "audio",
-          "Voice recording",
-          0,
+          { caption: "Voice recording", durationMs: 0 },
         );
         mediaAssetIds.push(audioId);
       }

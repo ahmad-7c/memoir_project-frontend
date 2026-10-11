@@ -9,7 +9,7 @@ import { IdentityStrip } from "@/components/ui/IdentityStrip";
 import { SectionTabs } from "@/components/ui/SectionTabs";
 import { Button } from "@/components/ui/Button";
 import { LoadingState } from "@/components/ui/ScreenStates";
-import { useActiveMemoir } from "@/features/dashboard/hooks";
+import { useActiveMemoir, useCoverPhotoUpload } from "@/features/dashboard/hooks";
 import { ProposalReview } from "@/features/dashboard/components/ProposalReview";
 import { PublishPanel } from "@/features/dashboard/components/PublishPanel";
 import { NarrativePanel } from "@/features/dashboard/components/NarrativePanel";
@@ -31,7 +31,8 @@ interface Chapter {
 }
 
 export default function ChaptersPage() {
-  const { memoirId, name } = useActiveMemoir();
+  const { memoirId, name, coverImageUrl, setCoverImageUrl } = useActiveMemoir();
+  const cover = useCoverPhotoUpload(memoirId, setCoverImageUrl);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chaptersLoading, setChaptersLoading] = useState(true);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -152,12 +153,15 @@ export default function ChaptersPage() {
     <main>
       <AppTopBar />
       <IdentityStrip
-        portraitSrc="/images/garden-portrait.jpg"
-        portraitAlt={name ? `A portrait associated with ${name}'s memoir` : "A portrait photograph"}
+        portraitSrc={coverImageUrl}
+        portraitAlt={name ? `A photograph of ${name}` : "A photograph of this memoir's subject"}
         eyebrow="A life, taking shape"
         name={name || "Their memoir"}
         subtitle="The chapters of a life."
+        onEditPortrait={cover.trigger}
+        portraitUploading={cover.uploading}
       />
+      {cover.error && <p className="max-w-[1440px] mx-auto px-6 md:px-16 -mt-4 mb-4 text-xs text-destructive">{cover.error}</p>}
 
       <div className="max-w-[1440px] mx-auto px-6 md:px-16">
         <SectionTabs tabs={TABS} active="The chapters" />

@@ -21,7 +21,7 @@ export function Hero({
   action,
   variant = "landing",
 }: {
-  desktopSrc: string;
+  desktopSrc?: string | null;
   phoneSrc?: string;
   alt: string;
   eyebrow: string;
@@ -37,23 +37,25 @@ export function Hero({
     <div
       className={
         isReader
-          ? "relative overflow-hidden h-[470px] min-[1001px]:h-[530px]"
-          : "relative overflow-hidden h-[780px] min-[701px]:h-[565px] min-[1500px]:h-[610px]"
+          ? "relative overflow-hidden h-[470px] min-[1001px]:h-[530px] bg-primary"
+          : "relative overflow-hidden h-[780px] min-[701px]:h-[565px] min-[1500px]:h-[610px] bg-primary"
       }
     >
-      <Image
-        src={desktopSrc}
-        alt={alt}
-        fill
-        priority
-        sizes="100vw"
-        className={
-          isReader
-            ? "object-cover object-[50%_48%] max-[700px]:object-[74%_58%]"
-            : "object-cover object-[50%_48%] max-[700px]:hidden"
-        }
-      />
-      {!isReader && phoneSrc && (
+      {desktopSrc && (
+        <Image
+          src={desktopSrc}
+          alt={alt}
+          fill
+          priority
+          sizes="100vw"
+          className={
+            isReader
+              ? "object-cover object-[50%_48%] max-[700px]:object-[74%_58%]"
+              : "object-cover object-[50%_48%] max-[700px]:hidden"
+          }
+        />
+      )}
+      {!isReader && desktopSrc && phoneSrc && (
         <Image
           src={phoneSrc}
           alt={alt}
