@@ -247,6 +247,15 @@ export interface SharedMemory {
   media: SharedMedia[];
 }
 
+export interface Participant {
+  id: string;
+  display_name: string;
+  relationship: string;
+  relationship_label: string | null;
+  role: string;
+  first_opened_at: string | null;
+}
+
 export interface SharedMemoirFull {
   id: string;
   subject_name: string;
@@ -589,6 +598,16 @@ export const api = {
     const json = await res.json();
     // Returns the exact ShareLinkResponse data from backend
     return json.data || json;
+  },
+  // Every active participant who has actually joined this memoir (unlocked
+  // the share link, or been added directly) -- real people, not a
+  // placeholder list.
+  async getParticipants(memoirId: string): Promise<Participant[]> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/participants`, {
+      method: "GET",
+    });
+    if (!res.ok) throw new Error("Failed to load participants");
+    return (await res.json()).data;
   },
   // Set/replace the share link's unlock password, or change its visibility.
   // `clear_password` removes the password requirement entirely.
@@ -977,6 +996,18 @@ export const api = {
     );
     if (!res.ok) throw new Error("Failed to rename chapter");
     return (await res.json()).data;
+  },
+
+  // Full new ordering only -- the backend's /chapters/reorder route takes the
+  // complete list, not a single up/down delta, so callers resend every
+  // chapter's { chapter_id, sort_order } on each move.
+  async reorderChapters(memoirId: string, order: { chapter_id: string; sort_order: number }[]) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/chapters/reorder`, {
+      method: "PUT",
+      body: JSON.stringify({ order }),
+    });
+    if (!res.ok) throw new Error("Failed to reorder chapters");
+    return z.array(ChapterSchema).parse((await res.json()).data);
   },
 
   // Real route is PUT /api/memoirs/{memoir_id}/memories/{memory_id}/move

@@ -2,7 +2,7 @@ import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 const fieldClasses =
-  "w-full min-h-11 rounded-sm border bg-surface-sunk px-4 py-3 text-body-ui text-ink placeholder:text-ink-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed";
+  "w-full h-[49px] rounded-md border bg-card px-[15px] py-[13px] text-sm text-foreground placeholder:text-muted-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:border-primary";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   invalid?: boolean;
@@ -15,7 +15,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <input
       ref={ref}
-      className={cn(fieldClasses, invalid ? "border-alert" : "border-line", className)}
+      className={cn(fieldClasses, invalid ? "border-destructive" : "border-border", className)}
       {...props}
     />
   );
@@ -32,7 +32,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(function 
   return (
     <textarea
       ref={ref}
-      className={cn(fieldClasses, "resize-none leading-relaxed", invalid ? "border-alert" : "border-line", className)}
+      className={cn(fieldClasses, "h-auto resize-none leading-relaxed", invalid ? "border-destructive" : "border-border", className)}
       {...props}
     />
   );

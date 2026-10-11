@@ -73,7 +73,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
 
       {activeInput === "none" && (
         <div className="flex flex-col items-center justify-center py-10">
-          <p className="font-serif text-subhead text-ink mb-10 text-center">
+          <p className="font-serif text-xl text-foreground mb-10 text-center">
             How would you like to hold onto today?
           </p>
 
@@ -83,14 +83,14 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                 key={key}
                 type="button"
                 onClick={() => setActiveInput(key)}
-                className="flex flex-col items-start gap-3 p-6 rounded-md border border-line bg-surface hover:border-brass-deep transition-colors text-left cursor-pointer min-h-11"
+                className="flex flex-col items-start gap-3 p-6 rounded-md border border-border bg-card hover:border-primary transition-colors text-left cursor-pointer min-h-11"
               >
-                <span className="w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-secondary">
+                <span className="w-10 h-10 rounded-full border border-border flex items-center justify-center text-muted-foreground">
                   <Icon size={16} />
                 </span>
                 <span>
-                  <span className="block font-serif text-subhead text-ink">{label}</span>
-                  <span className="block text-small text-ink-muted mt-0.5">{hint}</span>
+                  <span className="block font-serif text-xl text-foreground">{label}</span>
+                  <span className="block text-xs text-muted-foreground mt-0.5">{hint}</span>
                 </span>
               </button>
             ))}
@@ -106,7 +106,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-            className="bg-surface border border-line rounded-md p-6 md:p-8"
+            className="bg-card border border-border rounded-md p-6 md:p-8"
           >
             <div className="flex items-center justify-end mb-4">
               <button
@@ -115,7 +115,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                   setActiveInput("none");
                   setIsTextExpanded(false);
                 }}
-                className="text-ink-muted hover:text-ink cursor-pointer p-2 rounded-sm transition-colors"
+                className="text-muted-foreground hover:text-foreground cursor-pointer p-2 rounded-sm transition-colors"
                 title="Close"
               >
                 <X size={16} />
@@ -161,13 +161,13 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                       placeholder="Write your story here, with care..."
                       rows={6}
                       autoFocus
-                      className="font-serif text-body-read"
+                      className="font-serif text-sm"
                     />
                   ) : (
                     <button
                       type="button"
                       onClick={() => setIsTextExpanded(true)}
-                      className="w-full text-left rounded-sm border border-line bg-surface-sunk px-4 py-3 text-body-ui text-ink-muted hover:border-brass-deep transition-colors cursor-pointer min-h-11"
+                      className="w-full text-left rounded-sm border border-border bg-secondary px-4 py-3 text-sm text-muted-foreground hover:border-primary transition-colors cursor-pointer min-h-11"
                     >
                       {inputContent || "Click here to expand and write freely"}
                     </button>
@@ -183,12 +183,12 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                       type="button"
                       onClick={recording ? stopRecording : startRecording}
                       className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-                        recording ? "bg-alert text-on-brass" : "bg-brass text-on-brass hover:bg-brass-bright"
+                        recording ? "bg-destructive text-primary-foreground" : "bg-primary text-primary-foreground hover:bg-primary"
                       }`}
                     >
                       {recording ? <Square size={16} /> : <Mic size={16} />}
                     </button>
-                    <span className="text-body-ui text-ink-secondary">
+                    <span className="text-sm text-muted-foreground">
                       {recording
                         ? "Recording… click to stop"
                         : audioUrl
@@ -203,7 +203,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                       <button
                         type="button"
                         onClick={clearRecording}
-                        className="text-ink-muted hover:text-alert p-1 transition-colors cursor-pointer"
+                        className="text-muted-foreground hover:text-destructive p-1 transition-colors cursor-pointer"
                         title="Delete recording"
                       >
                         <X size={16} />
@@ -220,21 +220,21 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-3 rounded-sm border border-line bg-surface-sunk px-6 py-6 text-body-ui text-ink-secondary hover:border-brass-deep transition-colors cursor-pointer min-h-11"
+                      className="w-full flex items-center justify-center gap-3 rounded-sm border border-border bg-secondary px-6 py-6 text-sm text-muted-foreground hover:border-primary transition-colors cursor-pointer min-h-11"
                     >
                       <Camera size={18} />
                       Attach a photo
                     </button>
                   ) : (
-                    <div className="flex items-center justify-between rounded-sm border border-line bg-surface-sunk px-4 py-3">
+                    <div className="flex items-center justify-between rounded-sm border border-border bg-secondary px-4 py-3">
                       <span className="flex items-center gap-3 truncate">
-                        <ImageIcon size={16} className="text-ink-secondary shrink-0" />
-                        <span className="text-body-ui text-ink truncate">{photoFile.name}</span>
+                        <ImageIcon size={16} className="text-muted-foreground shrink-0" />
+                        <span className="text-sm text-foreground truncate">{photoFile.name}</span>
                       </span>
                       <button
                         type="button"
                         onClick={() => setPhotoFile(null)}
-                        className="text-ink-muted hover:text-alert p-1 cursor-pointer"
+                        className="text-muted-foreground hover:text-destructive p-1 cursor-pointer"
                       >
                         <X size={16} />
                       </button>

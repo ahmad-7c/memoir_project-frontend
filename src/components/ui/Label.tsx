@@ -5,19 +5,16 @@ interface LabelProps extends LabelHTMLAttributes<HTMLLabelElement> {
   required?: boolean;
 }
 
-/** Always above and outside the field it labels -- no floating labels. */
+/**
+ * Plain sentence-case label, 11px, --muted-foreground -- the reference's
+ * `/begin` labels ("Email", "Password") are not uppercase micro-labels.
+ */
 export function Label({ children, required, className = "", ...props }: LabelProps) {
   return (
-    <label
-      className={cn(
-        "block text-micro uppercase tracking-[0.06em] font-semibold text-ink-secondary mb-2",
-        className,
-      )}
-      {...props}
-    >
+    <label className={cn("block text-[11px] text-muted-foreground mb-2", className)} {...props}>
       {children}
       {required && (
-        <span className="text-alert ml-1" aria-hidden="true">
+        <span className="text-destructive ml-1" aria-hidden="true">
           *
         </span>
       )}

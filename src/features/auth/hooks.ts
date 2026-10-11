@@ -47,7 +47,7 @@ export function useAuth() {
         // Returning user with an existing memoir.
         localStorage.setItem("active_memoir", JSON.stringify(memoirs[0]));
         localStorage.removeItem("pending_memoir");
-        router.push("/dashboard");
+        router.push("/memories");
         return true;
       } catch (memoirCheckError) {
         console.error("Could not verify this account's memoirs after login", memoirCheckError);
@@ -124,7 +124,7 @@ export function useAuth() {
       localStorage.removeItem("user_profile");
       localStorage.removeItem("user_name");
       sessionStorage.removeItem("onboarding_initial_memory");
-      router.push("/login");
+      router.push("/begin");
     }
   };
 

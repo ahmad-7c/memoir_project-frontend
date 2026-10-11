@@ -1,78 +1,27 @@
-# Image credits
+# Image Credits
 
-All images sourced from Pexels under the Pexels Licence (free to use, no
-attribution required, commercial use permitted: https://www.pexels.com/license/).
-Downloaded and self-hosted in this folder rather than hotlinked. None of these
-photographs show an identifiable person -- all are empty interiors, textures,
-landscapes, or objects.
+All images sourced from Unsplash or Pexels under their respective free licences, which permit commercial use without attribution (credit given here regardless, as good practice).
 
-## window-light-floor.jpg
-Source: https://www.pexels.com/photo/sunlight-through-the-glass-window-of-a-cabin-13438765/
+## scattered-photos-linen-desktop.jpg
+Sources (composite of two Pexels photos):
+1. https://www.pexels.com/photo/cereals-and-croissant-in-bed-10060580/ — Photographer: Nataliya Vaitkevich — Licence: Pexels Licence
+2. https://www.pexels.com/photo/vintage-black-and-white-cityscape-postcards-37947890/ — Photographer: Fiona Murray — Licence: Pexels Licence
+Note: Replaces a prior candidate that was rejected for containing several identifiable faces (a man holding a baby, children, a group portrait, men at a table). Photo 1 is a warm beige linen bed-sheet flat-lay with soft folds and a natural diagonal sunlight/shadow band; a clean, food-free region of it was cropped for the empty ~40% left side. Photo 2 is a fanned pile of black-and-white vintage postcards showing only aerial cityscape, harbor, and monument views (Marseille architecture/water scenes) — zero people or faces anywhere in the source. The postcard pile was cropped, warm-toned to match the linen's palette, and composited onto the right ~60% of the linen with a soft feathered blend and a faint grounding shadow at the seam. Every postcard in the final crop was individually zoomed and inspected; the content is buildings, water, and skyline only.
+
+## scattered-photos-linen-phone.jpg
+Sources (composite of two Pexels photos, same pair as the desktop crop above):
+1. https://www.pexels.com/photo/cereals-and-croissant-in-bed-10060580/ — Photographer: Nataliya Vaitkevich — Licence: Pexels Licence
+2. https://www.pexels.com/photo/vintage-black-and-white-cityscape-postcards-37947890/ — Photographer: Fiona Murray — Licence: Pexels Licence
+Note: Same two source photos as the desktop crop, recombined in a portrait arrangement — clean linen (photo 1) fills the top ~60% of the frame with a soft diagonal fold line, and the same face-free cityscape postcard pile (photo 2) is compressed into the bottom third with a soft feathered blend into the fabric. No faces anywhere in the source content (postcards show only cityscape/harbor/monument views).
+
+## garden-portrait.jpg
+Source: https://www.pexels.com/photo/charming-springtime-cottage-with-cherry-blossom-tree-32099825/
+Photographer: Tatyana Doloman
 Licence: Pexels Licence
+Note: Substituted a people-free equivalent. The brief called for a man in a garden in front of a stone cottage with an apple-blossom tree; after searching Pexels and Unsplash for a matching composition where the man's face is not clearly identifiable (from behind, at distance, silhouette, turned away), no adequate match was found — candidates either showed the face clearly or lacked the cottage/blossom-tree setting entirely. Per policy, substituted a people-free mood-equivalent: a blossoming tree in full bloom in front of a traditional garden house. The house here is dark-stained wood rather than literal stone (no free-licence photo combining stone cottage + blossom tree + zero clutter was found despite extensive search); the blossom tree and serene, uncluttered garden mood were prioritized as the closer match to the brief.
 
-## sunbeam-empty-room.jpg
-Source: https://www.pexels.com/photo/light-shining-through-window-into-empty-room-14126667/
+## beach-family.jpg
+Source: https://www.pexels.com/photo/people-on-beach-near-natural-arch-in-dorset-16409700/
+Photographer: Ana Tinca (@ana-tinca-264849644)
 Licence: Pexels Licence
-
-## open-book-blur.jpg
-Source: https://pexels.com/photo/blurred-book-book-pages-literature-46274
-Licence: Pexels Licence
-
-## handwriting-blur.jpg
-Source: https://www.pexels.com/photo/cursive-handwriting-on-paper-5337733/
-Licence: Pexels Licence
-
-## worn-leather.jpg
-Source: https://www.pexels.com/photo/close-up-of-an-old-worn-red-leather-surface-18786378/
-Licence: Pexels Licence
-
-## linen-weave.jpg
-Source: https://www.pexels.com/photo/close-up-of-a-linen-texture-7794365/
-Licence: Pexels Licence
-
-## aged-paper.jpg
-Source: https://www.pexels.com/photo/old-paper-texture-18393282/
-Licence: Pexels Licence
-
-## still-water-dawn.jpg
-Source: https://www.pexels.com/photo/tranquil-misty-lake-with-reed-grass-at-dawn-30352742/
-Licence: Pexels Licence
-
-## mist-over-field.jpg
-Source: https://www.pexels.com/photo/fog-over-rural-fields-on-plains-18579956/
-Licence: Pexels Licence
-
-## pine-forest-fog.jpg
-Source: https://www.pexels.com/photo/photo-of-pine-trees-covered-by-fog-2529973/
-Licence: Pexels Licence
-
-## window-dusk-lamplight.jpg
-Source: https://www.pexels.com/photo/warm-light-through-a-window-at-dusk-30059049/
-Licence: Pexels Licence
-
-## empty-chair-window.jpg
-Source: https://www.pexels.com/photo/empty-chair-in-light-in-room-in-shadow-15154651/
-Licence: Pexels Licence
-Note: a framed painting is visible on the wall in the background, depicting
-stylised illustrated profile portraits -- this is artwork, not a photograph
-of a real person, so it does not trigger the no-identifiable-people rule
-(which is about photographic likenesses). Flagged here for transparency.
-
-## Rejected after visual review (not used)
-
-Two candidates were downloaded, then actually opened and looked at pixel by
-pixel (not just read from their Pexels title/description) during this same
-session, and both failed the zero-identifiable-people rule on sight:
-
-- **old-photographs-table.jpg** (pexels 32805946) -- described as an abstract
-  flat lay; the actual photo is a wedding photo-booth spread with dozens of
-  sharp, smiling, fully identifiable faces. Deleted, not replaced -- the
-  onboarding slot it was meant for now reuses worn-leather.jpg instead.
-- **dust-motes-sunlight.jpg** (pexels 4122913) -- described as dust motes in a
-  shaft of light; the actual photo has a smiling woman in the (blurred but
-  legible) background. Deleted and replaced by sunbeam-empty-room.jpg above,
-  which was opened and confirmed people-free before being kept.
-
-Lesson for next time this list is extended: a Pexels/Unsplash title or
-description is not sufficient evidence of "no people" -- open the actual
-downloaded file and look at it before crediting it.
+Note: Substituted a near-people-free equivalent. The brief called for a family of four on a pebble beach in front of a sea-arch rock formation; no free-licence photo was found combining an intimate small-family group with a sea arch and non-identifiable faces (the only arch+people match found, at Durdle Door, showed a crowded tourist beach, wrong in both headcount and mood). Used a tightly cropped version of that same Durdle Door photo instead — cropped to keep the iconic arch and water and cut out almost the entire crowd, leaving one indistinct, unidentifiable figure as a speck in the far distance. Beach is sand rather than pebble at this specific vantage point (Durdle Door's adjacent cove); the rock arch itself was prioritized as the closer match to the brief.

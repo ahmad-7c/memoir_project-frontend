@@ -1,16 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/**
- * An editorial tile -- a memoir in the owner's profile grid, a choice on
- * the empty dashboard. One hairline border, one surface tint, no shadow;
- * a specular top edge (one step brighter than the other three borders)
- * reads as light falling from above. On hover the border alone warms from
- * --line to --brass-deep over 260ms -- the card never moves or lifts.
- * Composes with a 3:2 media crop at the top (see Card.Media) and plain
- * content below; it never tries to carry equal weight against its
- * siblings by default -- that is each screen's layout decision, not this
- * component's.
- */
+/** An editorial tile -- a memoir in the owner's profile grid. Hairline border, --card fill, rounded-md, no shadow by default (the reference reserves --shadow for an elevated/interactive state). */
 export function Card({
   children,
   className = "",
@@ -21,12 +11,7 @@ export function Card({
   as?: "div" | "li";
 }) {
   return (
-    <Comp
-      className={cn(
-        "bg-surface border border-line specular-top rounded-md overflow-hidden transition-colors duration-[260ms] hover:border-brass-deep",
-        className,
-      )}
-    >
+    <Comp className={cn("bg-card border border-border rounded-md overflow-hidden transition-colors hover:border-foreground/30", className)}>
       {children}
     </Comp>
   );
@@ -42,7 +27,7 @@ Card.Media = function CardMedia({
   className?: string;
 }) {
   return (
-    <div className={cn("relative w-full aspect-3/2 bg-surface-sunk overflow-hidden", className)}>
+    <div className={cn("relative w-full aspect-3/2 bg-secondary overflow-hidden", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived Supabase URLs, not a fixed asset next/image can optimise */}
       <img src={src} alt={alt} className="w-full h-full object-cover" />
     </div>

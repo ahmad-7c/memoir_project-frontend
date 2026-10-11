@@ -87,28 +87,29 @@ export function MemoryComments({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="text-micro uppercase tracking-[0.06em] text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
+        className="inline-flex items-center gap-1.5 text-[13px] text-foreground hover:text-primary transition-colors cursor-pointer"
       >
-        {open ? "Hide notes" : roots.length > 0 ? "Family notes" : "Leave a note"}
+        <span aria-hidden="true">💬</span>
+        {open ? "Hide notes" : roots.length > 0 ? "Family notes" : "Leave a little note"}
       </button>
 
       {open && (
-        <div className="mt-3 pl-4 border-l border-line flex flex-col gap-3">
-          {loading && <p className="text-small text-ink-muted italic">Loading…</p>}
-          {error && <p className="text-small text-alert">{error}</p>}
+        <div className="mt-3 pl-4 border-l border-border flex flex-col gap-3">
+          {loading && <p className="text-xs text-muted-foreground italic">Loading…</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
 
           {roots.map((comment) => (
             <div key={comment.id}>
-              <p className="font-serif text-small text-ink-secondary leading-relaxed">&ldquo;{comment.body}&rdquo;</p>
+              <p className="font-serif text-xs text-muted-foreground leading-relaxed">&ldquo;{comment.body}&rdquo;</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-micro text-ink-muted">
+                <p className="text-[10px] text-muted-foreground">
                   {comment.author_name || "A family member"} · {formatTime(comment.created_at)}
                 </p>
                 {canComment && (
                   <button
                     type="button"
                     onClick={() => setReplyTo(replyTo === comment.id ? null : comment.id)}
-                    className="text-micro text-ink-muted hover:text-ink-secondary cursor-pointer"
+                    className="text-[10px] text-muted-foreground hover:text-muted-foreground cursor-pointer"
                   >
                     Reply
                   </button>
@@ -116,9 +117,9 @@ export function MemoryComments({
               </div>
 
               {(repliesByParent.get(comment.id) || []).map((reply) => (
-                <div key={reply.id} className="mt-2 pl-4 border-l border-line">
-                  <p className="font-serif text-small text-ink-secondary leading-relaxed">&ldquo;{reply.body}&rdquo;</p>
-                  <p className="text-micro text-ink-muted mt-0.5">
+                <div key={reply.id} className="mt-2 pl-4 border-l border-border">
+                  <p className="font-serif text-xs text-muted-foreground leading-relaxed">&ldquo;{reply.body}&rdquo;</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
                     {reply.author_name || "A family member"} · {formatTime(reply.created_at)}
                   </p>
                 </div>
@@ -132,13 +133,13 @@ export function MemoryComments({
                     onChange={(e) => setReplyDraft(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleReply(comment.id)}
                     placeholder="Write a reply…"
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-sm bg-surface-sunk border border-line text-small text-ink outline-none focus:border-brass transition-colors"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-sm bg-secondary border border-border text-xs text-foreground outline-none focus:border-primary transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => handleReply(comment.id)}
                     disabled={submitting || !replyDraft.trim()}
-                    className="px-3 py-1.5 rounded-sm border border-line text-ink-secondary hover:bg-surface-sunk text-micro font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-colors"
+                    className="px-3 py-1.5 rounded-sm border border-border text-muted-foreground hover:bg-secondary text-[10px] font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-colors"
                   >
                     Send
                   </button>
@@ -155,13 +156,13 @@ export function MemoryComments({
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="Leave a note…"
-                className="flex-1 min-w-0 px-3 py-2 rounded-sm bg-surface-sunk border border-line text-small text-ink outline-none focus:border-brass transition-colors"
+                className="flex-1 min-w-0 px-3 py-2 rounded-sm bg-secondary border border-border text-xs text-foreground outline-none focus:border-primary transition-colors"
               />
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !draft.trim()}
-                className="px-3 py-2 rounded-sm border border-line text-ink-secondary hover:bg-surface-sunk text-micro font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-colors"
+                className="px-3 py-2 rounded-sm border border-border text-muted-foreground hover:bg-secondary text-[10px] font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-colors"
               >
                 Add
               </button>

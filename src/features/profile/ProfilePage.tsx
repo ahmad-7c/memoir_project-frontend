@@ -70,17 +70,17 @@ export default function ProfilePage() {
         subject_died_on: memoir.subject_died_on,
       }),
     );
-    router.push(memoir.status === "published" ? "/final-memoir" : "/dashboard");
+    router.push(memoir.status === "published" ? "/memoir" : "/memories");
   };
 
   return (
-    <div className="min-h-screen bg-canvas px-6 md:px-12 py-12">
+    <div className="min-h-screen bg-background px-6 md:px-12 py-12">
       <div className="max-w-2xl mx-auto">
         <div className="mb-10">
           <button
             type="button"
-            onClick={() => router.push("/dashboard")}
-            className="text-ink-muted hover:text-ink-secondary text-body-ui transition-colors cursor-pointer"
+            onClick={() => router.push("/memories")}
+            className="text-muted-foreground hover:text-muted-foreground text-sm transition-colors cursor-pointer"
           >
             ← Back
           </button>
@@ -98,14 +98,14 @@ export default function ProfilePage() {
               transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
               className="mb-12"
             >
-              <h1 className="font-serif text-heading text-ink mb-1">{profile.name}</h1>
-              <p className="text-body-ui text-ink-secondary mb-4">{profile.email}</p>
-              <Badge variant={profile.subscription_status === "free" ? "neutral" : "calm"}>
+              <h1 className="font-serif text-2xl text-foreground mb-1">{profile.name}</h1>
+              <p className="text-sm text-muted-foreground mb-4">{profile.email}</p>
+              <Badge variant={profile.subscription_status === "free" ? "muted" : "default"}>
                 {profile.subscription_status}
               </Badge>
             </motion.div>
 
-            <h2 className="font-serif text-subhead text-ink mb-6">Your memoirs</h2>
+            <h2 className="font-serif text-xl text-foreground mb-6">Your memoirs</h2>
 
             {profile.memoirs.length === 0 ? (
               <EmptyState title="No memoirs yet" description="Once you create one, it will appear here." />
@@ -116,13 +116,13 @@ export default function ProfilePage() {
               <div className="flex flex-col gap-5">
                 {profile.memoirs.map((memoir) => (
                   <button key={memoir.id} type="button" onClick={() => openMemoir(memoir)} className="text-left w-full cursor-pointer">
-                    <Card className="flex flex-col sm:flex-row hover:border-brass-deep transition-colors">
+                    <Card className="flex flex-col sm:flex-row hover:border-foreground/30 transition-colors">
                       <div className="sm:w-56 shrink-0">
                         {memoir.cover_image_url ? (
                           <Card.Media src={memoir.cover_image_url} alt={memoir.subject_name} />
                         ) : (
-                          <div className="w-full aspect-3/2 bg-surface-sunk flex items-center justify-center">
-                            <span className="font-serif text-heading text-ink-muted">
+                          <div className="w-full aspect-3/2 bg-secondary flex items-center justify-center">
+                            <span className="font-serif text-2xl text-muted-foreground">
                               {memoir.subject_name.charAt(0)}
                             </span>
                           </div>
@@ -131,11 +131,11 @@ export default function ProfilePage() {
 
                       <div className="flex-1 min-w-0 p-6 flex flex-col justify-center">
                         <div className="flex items-start justify-between gap-3 mb-1">
-                          <h3 className="font-serif text-display text-ink truncate">{memoir.subject_name}</h3>
-                          {memoir.status === "published" && <Badge variant="brass">Published</Badge>}
+                          <h3 className="font-serif text-3xl text-foreground truncate">{memoir.subject_name}</h3>
+                          {memoir.status === "published" && <Badge variant="default">Published</Badge>}
                         </div>
-                        <p className="text-small text-ink-muted mb-2">{formatDates(memoir)}</p>
-                        <p className="text-small text-ink-muted">
+                        <p className="text-xs text-muted-foreground mb-2">{formatDates(memoir)}</p>
+                        <p className="text-xs text-muted-foreground">
                           {memoir.memory_count} {memoir.memory_count === 1 ? "memory" : "memories"} · updated{" "}
                           {formatUpdated(memoir.updated_at)}
                         </p>

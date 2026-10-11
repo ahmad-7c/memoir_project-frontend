@@ -64,30 +64,30 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-            className="mb-4 w-80 md:w-96 bg-surface border border-line rounded-md overflow-hidden flex flex-col"
+            className="mb-4 w-80 md:w-96 bg-card border border-border rounded-md overflow-hidden flex flex-col"
             style={{ height: "450px" }}
           >
-            <div className="border-b border-line p-4 flex justify-between items-center">
+            <div className="border-b border-border p-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <MessageSquare size={14} className="text-ink-secondary" />
-                <span className="text-body-ui font-semibold text-ink">Ask the archive</span>
+                <MessageSquare size={14} className="text-muted-foreground" />
+                <span className="text-sm font-semibold text-foreground">Ask the archive</span>
               </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-ink-muted hover:text-ink cursor-pointer p-1">
+              <button onClick={() => setIsChatOpen(false)} className="text-muted-foreground hover:text-foreground cursor-pointer p-1">
                 <X size={16} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
               {chatHistory.length === 0 ? (
-                <p className="text-center text-small text-ink-muted mt-10 px-4">
+                <p className="text-center text-xs text-muted-foreground mt-10 px-4">
                   Search for specific memories, names, or patterns in the timeline.
                 </p>
               ) : (
                 chatHistory.map((msg, i) => (
                   <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                     <div
-                      className={`px-3.5 py-2.5 rounded-sm max-w-[85%] text-small ${
-                        msg.role === "user" ? "bg-surface-sunk text-ink" : "border border-line text-ink-secondary"
+                      className={`px-3.5 py-2.5 rounded-sm max-w-[85%] text-xs ${
+                        msg.role === "user" ? "bg-secondary text-foreground" : "border border-border text-muted-foreground"
                       }`}
                     >
                       {msg.text}
@@ -99,15 +99,15 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
                     {msg.proposedActions && msg.proposedActions.length > 0 && (
                       <div className="max-w-[85%] mt-1.5 flex flex-col gap-1.5">
                         {msg.proposedActions.map((action, j) => (
-                          <div key={j} className="flex items-start gap-1.5 text-micro text-ink-muted border border-line rounded-sm px-2.5 py-1.5">
-                            <Sparkles size={11} className="text-ink-secondary shrink-0 mt-0.5" />
+                          <div key={j} className="flex items-start gap-1.5 text-[10px] text-muted-foreground border border-border rounded-sm px-2.5 py-1.5">
+                            <Sparkles size={11} className="text-muted-foreground shrink-0 mt-0.5" />
                             <span>
-                              <span className="font-semibold text-ink-secondary">{action.action_type.replace(/_/g, " ")}</span>
+                              <span className="font-semibold text-muted-foreground">{action.action_type.replace(/_/g, " ")}</span>
                               {action.rationale ? ` — ${action.rationale}` : ""}
                             </span>
                           </div>
                         ))}
-                        <p className="text-micro text-ink-muted px-1">
+                        <p className="text-[10px] text-muted-foreground px-1">
                           Suggestions only — nothing has changed. Use &ldquo;Organize into chapters&rdquo; to review and apply.
                         </p>
                       </div>
@@ -117,7 +117,7 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
               )}
             </div>
 
-            <div className="p-3 border-t border-line">
+            <div className="p-3 border-t border-border">
               <input
                 type="text"
                 value={chatQuery}
@@ -126,7 +126,7 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
                   if (e.key === "Enter") handleSendChat();
                 }}
                 placeholder="Search your memories…"
-                className="w-full bg-surface-sunk border border-line rounded-sm px-3 py-2.5 text-body-ui outline-none focus:border-brass text-ink placeholder:text-ink-muted transition-colors"
+                className="w-full bg-secondary border border-border rounded-sm px-3 py-2.5 text-sm outline-none focus:border-brass text-foreground placeholder:text-muted-foreground transition-colors"
               />
             </div>
           </motion.div>
@@ -136,7 +136,7 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
       <button
         onClick={() => setIsChatOpen(!isChatOpen)}
         aria-label={isChatOpen ? "Close archive search" : "Ask the archive"}
-        className="w-14 h-14 bg-surface border border-line rounded-md flex items-center justify-center cursor-pointer text-ink-secondary hover:text-ink hover:bg-surface-sunk transition-colors"
+        className="w-14 h-14 bg-card border border-border rounded-md flex items-center justify-center cursor-pointer text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
       >
         {isChatOpen ? <X size={20} /> : <MessageSquare size={20} />}
       </button>

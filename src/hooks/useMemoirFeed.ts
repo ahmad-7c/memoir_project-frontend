@@ -25,6 +25,7 @@ interface BackendMemory {
   occurred_start?: string;
   created_at?: string;
   chapter_id?: string; // Added chapter_id mapping
+  author_participant_id?: string;
   media_assets?: BackendAsset[];
   memory_media?: Array<{ media_asset?: BackendAsset } | BackendAsset>;
 }
@@ -83,7 +84,11 @@ export function useMemoirFeed(memoirId: string) {
           content: item.body_text || "", 
           date: item.occurred_start || item.created_at?.split("T")[0] || "",
           kind: kind,
-          author: "Owner",
+          // Resolved against the real participants list by the page that
+          // renders this feed (see /memories' `participantsById`) -- this
+          // hook only has the raw id, never a display name to invent.
+          author: "",
+          author_participant_id: item.author_participant_id,
           chapter_id: item.chapter_id, // Attached chapter_id here
           mediaUrl: getUrl(photoAsset), 
           audioUrl: getUrl(audioAsset), 

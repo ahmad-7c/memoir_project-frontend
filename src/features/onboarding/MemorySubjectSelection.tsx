@@ -18,8 +18,6 @@ import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
-import { OnboardingBackdrop } from "./OnboardingBackdrop";
-import backdropImage from "../../../public/images/window-light-floor.jpg";
 
 interface OptionItem {
   id: string;
@@ -106,8 +104,7 @@ export default function MemorySubjectSelection() {
   };
 
   return (
-    <section className="relative isolate min-h-screen bg-canvas flex items-center justify-center px-6 py-16">
-      <OnboardingBackdrop src={backdropImage} />
+    <section className="relative isolate min-h-screen bg-background flex items-center justify-center px-6 py-16">
       <div className="w-full max-w-125 flex flex-col items-center">
         <div className="mb-6 w-full flex justify-start">
           <button
@@ -120,7 +117,7 @@ export default function MemorySubjectSelection() {
                 router.back();
               }
             }}
-            className="text-ink-muted hover:text-ink-secondary text-body-ui transition-colors inline-flex items-center gap-1 cursor-pointer"
+            className="text-muted-foreground hover:text-muted-foreground text-sm transition-colors inline-flex items-center gap-1 cursor-pointer"
           >
             ← Back
           </button>
@@ -135,7 +132,7 @@ export default function MemorySubjectSelection() {
             transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
             className="w-full"
           >
-            <h1 className="font-serif text-heading text-ink text-center mb-10 leading-snug">
+            <h1 className="font-serif text-3xl text-foreground text-center mb-10 leading-snug">
               Whose voice do you want to keep close?
             </h1>
 
@@ -147,14 +144,14 @@ export default function MemorySubjectSelection() {
                     key={option.id}
                     type="button"
                     onClick={() => handleSelect(option.id)}
-                    className="flex items-center gap-4 w-full text-left px-5 py-4 rounded-md border border-line bg-surface hover:border-brass-deep transition-colors cursor-pointer min-h-11"
+                    className="flex items-center gap-4 w-full text-left px-5 py-4 rounded-md border border-border bg-card hover:border-primary transition-colors cursor-pointer min-h-11"
                   >
-                    <span className="shrink-0 w-10 h-10 rounded-full border border-line flex items-center justify-center">
-                      <IconComponent size={16} className="text-ink-secondary" strokeWidth={1.5} />
+                    <span className="shrink-0 w-10 h-10 rounded-full border border-border flex items-center justify-center">
+                      <IconComponent size={16} className="text-muted-foreground" strokeWidth={1.5} />
                     </span>
                     <span>
-                      <span className="block font-serif text-subhead text-ink">{option.label}</span>
-                      <span className="block text-small text-ink-muted mt-0.5">{option.description}</span>
+                      <span className="block font-serif text-xl text-foreground">{option.label}</span>
+                      <span className="block text-xs text-muted-foreground mt-0.5">{option.description}</span>
                     </span>
                   </button>
                 );
@@ -166,16 +163,16 @@ export default function MemorySubjectSelection() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-            className="w-full bg-surface border border-line rounded-md px-8 md:px-10 py-10"
+            className="w-full bg-card border border-border rounded-md px-8 md:px-10 py-10"
           >
-            <h1 className="font-serif text-heading text-ink text-center mb-8 leading-snug">
+            <h1 className="font-serif text-3xl text-foreground text-center mb-8 leading-snug">
               For {options.find((o) => o.id === selectedOption)?.label}
             </h1>
 
             {errorMessage && (
-              <div role="alert" className="mb-6 flex items-start gap-3 rounded-md border border-line bg-canvas px-5 py-4">
-                <span className="w-1.5 h-1.5 rounded-full bg-alert shrink-0 mt-2" aria-hidden="true" />
-                <p className="text-body-ui text-ink">{errorMessage}</p>
+              <div role="alert" className="mb-6 flex items-start gap-3 rounded-md border border-border bg-background px-5 py-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 mt-2" aria-hidden="true" />
+                <p className="text-sm text-foreground">{errorMessage}</p>
               </div>
             )}
 
@@ -219,7 +216,7 @@ export default function MemorySubjectSelection() {
                     <Label htmlFor="subject-dod" required={!isAlive} className="mb-0">
                       Date of passing
                     </Label>
-                    <label className="flex items-center gap-1.5 text-small text-ink-muted cursor-pointer select-none">
+                    <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={isAlive}
@@ -228,7 +225,7 @@ export default function MemorySubjectSelection() {
                           if (e.target.checked) setDod("");
                           if (errorMessage) setErrorMessage(null);
                         }}
-                        className="w-4 h-4 rounded-sm border-line accent-ink cursor-pointer"
+                        className="w-4 h-4 rounded-sm border-border accent-primary cursor-pointer"
                       />
                       <span>Still with us</span>
                     </label>

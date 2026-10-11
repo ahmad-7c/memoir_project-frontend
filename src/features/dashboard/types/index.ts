@@ -5,8 +5,10 @@ export interface MemoryItem {
   content: string;
   date: string;
   author: string;
+  author_participant_id?: string;
   chapter_id?: string;
   mediaUrl?: string | null;
+  audioUrl?: string | null;
   duration?: string;
   transcription?: string | null;
 }

@@ -54,24 +54,27 @@ export function NarrativeSources({ memoirId, sectionId, shareToken, readerToken 
       <button
         type="button"
         onClick={handleToggle}
-        className="inline-flex items-center gap-1 text-small text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer"
+        aria-expanded={open}
+        className="inline-flex items-center gap-1.5 text-[13px] text-foreground hover:text-primary transition-colors cursor-pointer"
       >
-        Sources
+        <span aria-hidden="true">📖</span>
+        From the family&rsquo;s memories
         {open ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
       </button>
 
       {open && (
-        <div className="mt-3 pl-4 border-l-2 border-line flex flex-col gap-4">
-          {loading && <p className="text-small text-ink-muted italic">Loading sources…</p>}
-          {error && <p className="text-small text-alert">{error}</p>}
+        <div className="mt-3 rounded-md bg-secondary p-5 flex flex-col gap-4">
+          {loading && <p className="text-xs text-muted-foreground italic">Loading sources…</p>}
+          {error && <p className="text-xs text-destructive">{error}</p>}
           {memories?.map((memory) => (
             <div key={memory.id}>
-              <div className="flex items-baseline gap-2 mb-1">
-                {memory.title && <span className="font-semibold text-small text-ink">{memory.title}</span>}
-                {memory.occurred_start && <span className="text-micro uppercase tracking-[0.06em] text-ink-muted">{memory.occurred_start}</span>}
-              </div>
+              <p className="text-[10px] font-medium uppercase tracking-[2px] text-muted-foreground mb-1.5">
+                {memory.author_name || "Family"}
+                {memory.occurred_start && <> &middot; {memory.occurred_start}</>}
+              </p>
+              {memory.title && <p className="text-xs font-medium text-foreground mb-1">{memory.title}</p>}
               {memory.body_text && (
-                <p className="font-serif text-body-read text-ink-secondary whitespace-pre-wrap">{memory.body_text}</p>
+                <p className="text-sm leading-relaxed text-foreground">&ldquo;{memory.body_text}&rdquo;</p>
               )}
               {memory.media.map((m) => (
                 <div key={m.id} className="mt-2">
@@ -80,20 +83,19 @@ export function NarrativeSources({ memoirId, sectionId, shareToken, readerToken 
                     <img
                       src={m.playback_url}
                       alt={m.caption || memory.title || "Source photo"}
-                      className="max-w-60 rounded-sm border border-line"
+                      className="max-w-60 rounded-md border border-border"
                     />
                   )}
                   {m.kind === "audio" && m.playback_url && (
                     <div className="flex flex-col gap-1.5">
                       <AudioPlayer src={m.playback_url} />
                       {m.transcript_text && (
-                        <p className="text-small text-ink-muted italic pl-3 border-l border-line">&ldquo;{m.transcript_text}&rdquo;</p>
+                        <p className="text-xs text-muted-foreground italic pl-3 border-l border-border">&ldquo;{m.transcript_text}&rdquo;</p>
                       )}
                     </div>
                   )}
                 </div>
               ))}
-              {memory.author_name && <p className="mt-1 text-micro uppercase tracking-[0.06em] text-ink-muted">— {memory.author_name}</p>}
             </div>
           ))}
         </div>

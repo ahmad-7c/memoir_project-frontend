@@ -1,57 +1,100 @@
 "use client";
 
-import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
 import { X } from "lucide-react";
+import { api, Participant } from "@/lib/api/client";
+import { Button } from "@/components/ui/Button";
+import { InitialAvatar } from "@/components/ui/InitialAvatar";
 
 interface ContributorsOverlayProps {
-  showContributors: boolean;
-  setShowContributors: (val: boolean) => void;
-  contributorNames: { name: string; top: string; left: string; size: string; scale: number; blur: string }[];
+  show: boolean;
+  onClose: () => void;
+  memoirId: string;
+  participants: Participant[];
+  participantsLoading: boolean;
 }
 
 /**
- * Previously an abstract dreamscape of contributor names floating and
- * glowing at random positions, each bobbing up and down forever -- replaced
- * with a plain list, since continuous looping motion and drop-shadow glow
- * are both against the brief. Only each person's name is used now; the
- * position/size/blur fields on contributorNames are no longer read.
+ * Real family & sharing panel: who has actually joined (from
+ * `GET /api/memoirs/{id}/participants`, not a placeholder name list), plus
+ * the real invite link. Copying the link publishes the memoir first if it
+ * isn't already (idempotent server-side) -- a reader share link can't exist
+ * on an unpublished memoir, same behaviour this app's share flow has always
+ * had, just wired here instead of silently dropped.
  */
-export function ContributorsOverlay({ showContributors, setShowContributors, contributorNames }: ContributorsOverlayProps) {
-  return (
-    <AnimatePresence>
-      {showContributors && (
-        <motion.div
-          key="contributors-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.24 }}
-          className="fixed inset-0 z-100 bg-canvas/95 backdrop-blur-sm flex items-center justify-center px-6"
-        >
-          <div className="w-full max-w-sm bg-surface border border-line rounded-md p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-serif text-subhead text-ink">Contributors</h2>
-              <button
-                type="button"
-                onClick={() => setShowContributors(false)}
-                className="text-ink-muted hover:text-ink transition-colors cursor-pointer p-1"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
-            </div>
+export function ContributorsOverlay({ show, onClose, memoirId, participants, participantsLoading }: ContributorsOverlayProps) {
+  const [copying, setCopying] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
+  const handleCopyLink = async () => {
+    setCopying(true);
+    setCopyError(null);
+    try {
+      await api.publishMemoir(memoirId);
+      const link = await api.createShareLink(memoirId);
+      if (link?.url) {
+        await navigator.clipboard.writeText(link.url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      }
+    } catch (err) {
+      setCopyError(err instanceof Error ? err.message : "Could not create the invite link.");
+    } finally {
+      setCopying(false);
+    }
+  };
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed inset-0 z-100 bg-background/95 backdrop-blur-sm flex items-center justify-center px-6">
+      <div className="w-full max-w-sm bg-card border border-border rounded-md p-8">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-serif text-xl text-foreground">Bring your family in</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer p-1"
+            aria-label="Close"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="mb-6">
+          <Button onClick={handleCopyLink} loading={copying} className="w-full">
+            {copying ? "Preparing link…" : copied ? "Link copied" : "Copy invite link"}
+          </Button>
+          {copyError && <p className="mt-2 text-xs text-destructive">{copyError}</p>}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Anyone with this link and the password you set can read and comment.
+          </p>
+        </div>
+
+        <div className="pt-6 border-t border-border">
+          <p className="text-[10px] font-medium uppercase tracking-[2px] text-muted-foreground mb-3">
+            Who&rsquo;s joined
+          </p>
+          {participantsLoading ? (
+            <p className="text-xs text-muted-foreground italic">Loading…</p>
+          ) : participants.length === 0 ? (
+            <p className="text-xs text-muted-foreground">No one&rsquo;s joined yet — share the link above.</p>
+          ) : (
             <ul className="flex flex-col gap-3">
-              {contributorNames.map((person) => (
-                <li key={person.name} className="text-body-ui text-ink-secondary">
-                  {person.name}
+              {participants.map((p) => (
+                <li key={p.id} className="flex items-center gap-2.5 text-sm text-foreground">
+                  <InitialAvatar initial={p.display_name[0]?.toUpperCase() || "?"} size={28} />
+                  {p.display_name}
+                  {p.relationship_label && (
+                    <span className="text-xs text-muted-foreground">&middot; {p.relationship_label}</span>
+                  )}
                 </li>
               ))}
             </ul>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

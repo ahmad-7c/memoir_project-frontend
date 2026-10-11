@@ -19,21 +19,18 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
-import { OnboardingBackdrop } from "./OnboardingBackdrop";
-import backdropImage from "../../../public/images/still-water-dawn.jpg";
 
 export default function InviteFamilyFriends() {
   const router = useRouter();
 
   return (
-    <section className="relative isolate min-h-screen flex items-center justify-center bg-canvas px-6 py-16">
-      <OnboardingBackdrop src={backdropImage} />
+    <section className="relative isolate min-h-screen flex items-center justify-center bg-background px-6 py-16">
       <div className="w-full max-w-125">
         <div className="mb-6 flex justify-start">
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer inline-flex items-center gap-1"
+            className="text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer inline-flex items-center gap-1"
           >
             <ArrowLeft size={16} strokeWidth={1.5} /> Back
           </button>
@@ -47,20 +44,20 @@ export default function InviteFamilyFriends() {
           transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
           className="text-center"
         >
-          <h1 className="font-serif text-heading text-ink leading-snug">
-            You remember it. <span className="text-brass">They might too.</span>
+          <h1 className="font-serif text-3xl text-foreground leading-snug">
+            You remember it. <span className="text-primary">They might too.</span>
           </h1>
 
-          <p className="mt-4 text-body-ui text-ink-secondary max-w-sm mx-auto">
+          <p className="mt-4 text-sm text-muted-foreground max-w-sm mx-auto">
             Invite someone who shared that moment with you. You can always add
             more people later.
           </p>
 
           <div className="mt-10 flex flex-col gap-3 max-w-sm mx-auto">
-            <Button type="button" onClick={() => router.push("/signup")} className="w-full">
+            <Button type="button" onClick={() => router.push("/begin")} className="w-full">
               Invite family and friends
             </Button>
-            <Button type="button" variant="ghost" onClick={() => router.push("/signup")} className="w-full">
+            <Button type="button" variant="ghost" onClick={() => router.push("/begin")} className="w-full">
               Maybe later
             </Button>
           </div>

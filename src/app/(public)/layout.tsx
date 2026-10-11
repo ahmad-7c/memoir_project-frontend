@@ -1,5 +1,5 @@
 // src/app/(public)/layout.tsx
-import Navbar from "../../components/Navbar";
+import SiteHeader from "../../components/SiteHeader";
 
 export default function PublicLayout({
   children,
@@ -8,7 +8,7 @@ export default function PublicLayout({
 }) {
   return (
     <>
-      <Navbar />
+      <SiteHeader />
       <main>{children}</main>
     </>
   );

@@ -96,7 +96,7 @@ export default function FirstMemoirScreen() {
       const memoir = created.data || created;
       localStorage.setItem("active_memoir", JSON.stringify(memoir));
       localStorage.removeItem("pending_memoir");
-      router.push("/dashboard");
+      router.push("/memories");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not create this memoir. Please try again.");
       setCreating(false);
@@ -104,22 +104,22 @@ export default function FirstMemoirScreen() {
   };
 
   return (
-    <section className="min-h-screen bg-canvas flex items-center justify-center px-6 py-20">
+    <section className="min-h-screen bg-background flex items-center justify-center px-6 py-20">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
         className="w-full max-w-110 text-center"
       >
-        <h1 className="font-serif text-heading text-ink leading-snug mb-3">Create your first memoir</h1>
-        <p className="text-body-ui text-ink-secondary mb-12 max-w-sm mx-auto">
+        <h1 className="font-serif text-3xl text-foreground leading-snug mb-3">Create your first memoir</h1>
+        <p className="text-sm text-muted-foreground mb-12 max-w-sm mx-auto">
           This is where their story will live. Everything else can be added once it exists.
         </p>
 
         {error && (
-          <div role="alert" className="mb-6 flex items-start gap-3 text-left rounded-md border border-line bg-surface px-5 py-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-alert shrink-0 mt-2" aria-hidden="true" />
-            <p className="text-body-ui text-ink">{error}</p>
+          <div role="alert" className="mb-6 flex items-start gap-3 text-left rounded-md border border-border bg-card px-5 py-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 mt-2" aria-hidden="true" />
+            <p className="text-sm text-foreground">{error}</p>
           </div>
         )}
 
@@ -163,7 +163,7 @@ export default function FirstMemoirScreen() {
             </div>
           </div>
 
-          <label className="flex items-center gap-2.5 text-body-ui text-ink-secondary cursor-pointer select-none -mt-1">
+          <label className="flex items-center gap-2.5 text-sm text-muted-foreground cursor-pointer select-none -mt-1">
             <input
               type="checkbox"
               checked={isAlive}
@@ -171,7 +171,7 @@ export default function FirstMemoirScreen() {
                 setIsAlive(e.target.checked);
                 if (e.target.checked) setDod("");
               }}
-              className="w-4.5 h-4.5 rounded-sm border-line accent-ink cursor-pointer"
+              className="w-4.5 h-4.5 rounded-sm border-border accent-primary cursor-pointer"
             />
             Still with us
           </label>

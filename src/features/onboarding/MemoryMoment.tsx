@@ -17,8 +17,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
-import { OnboardingBackdrop } from "./OnboardingBackdrop";
-import backdropImage from "../../../public/images/linen-weave.jpg";
 
 export default function MemoryMoment() {
   const router = useRouter();
@@ -97,13 +95,12 @@ export default function MemoryMoment() {
   }, []);
 
   return (
-    <section className="relative isolate min-h-screen bg-canvas flex flex-col items-center px-6 py-16">
-      <OnboardingBackdrop src={backdropImage} />
+    <section className="relative isolate min-h-screen bg-background flex flex-col items-center px-6 py-16">
       <div className="w-full max-w-125 flex justify-start mb-6">
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-ink-muted hover:text-ink-secondary transition-colors cursor-pointer inline-flex items-center gap-1"
+          className="text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer inline-flex items-center gap-1"
           aria-label="Go back"
         >
           <ArrowLeft size={16} strokeWidth={1.5} /> Back
@@ -113,32 +110,32 @@ export default function MemoryMoment() {
       <OnboardingProgress step={4} />
 
       <div className="w-full max-w-125">
-        <h1 className="font-serif text-heading text-ink text-center mb-10 leading-snug">A glimpse of the archive</h1>
+        <h1 className="font-serif text-3xl text-foreground text-center mb-10 leading-snug">A glimpse of the archive</h1>
 
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-          className="bg-surface border border-line rounded-md px-8 md:px-10 py-10 mb-10"
+          className="bg-card border border-border rounded-md px-8 md:px-10 py-10 mb-10"
         >
           {subjectName && (
             <div className="mb-6">
-              <p className="font-serif text-subhead text-ink">{subjectName}&apos;s story</p>
-              {subjectDates && <p className="text-small text-ink-muted mt-1">{subjectDates}</p>}
+              <p className="font-serif text-xl text-foreground">{subjectName}&apos;s story</p>
+              {subjectDates && <p className="text-xs text-muted-foreground mt-1">{subjectDates}</p>}
             </div>
           )}
 
           {previewMemory ? (
-            <p className="font-serif text-body-read text-ink-secondary leading-relaxed">
+            <p className="font-serif text-sm text-muted-foreground leading-relaxed">
               {previewMemory}
               {authorName && (
-                <span className="block text-small text-ink-muted mt-4 not-italic font-sans">
+                <span className="block text-xs text-muted-foreground mt-4 not-italic font-sans">
                   — Remembered by {authorName}
                 </span>
               )}
             </p>
           ) : (
-            <p className="font-serif text-body-read text-ink-muted italic">
+            <p className="font-serif text-sm text-muted-foreground italic">
               Your written reflection will appear here.
             </p>
           )}

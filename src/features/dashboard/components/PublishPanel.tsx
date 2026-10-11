@@ -177,46 +177,46 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.24 }}
-          className="fixed inset-0 z-100 bg-canvas/90 backdrop-blur-sm flex items-center justify-center px-6"
+          className="fixed inset-0 z-100 bg-background/90 backdrop-blur-sm flex items-center justify-center px-6"
         >
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-            className="w-full max-w-md bg-surface border border-line rounded-md px-8 py-8 relative"
+            className="w-full max-w-md bg-card border border-border rounded-md px-8 py-8 relative"
           >
             <button
               type="button"
               onClick={onClose}
-              className="absolute top-5 right-5 text-ink-muted hover:text-ink cursor-pointer"
+              className="absolute top-5 right-5 text-muted-foreground hover:text-foreground cursor-pointer"
               aria-label="Close"
             >
               <X size={16} />
             </button>
 
-            <h2 className="font-serif text-subhead text-ink mb-1">Share this memoir</h2>
-            <p className="text-body-ui text-ink-secondary mb-6">
+            <h2 className="font-serif text-xl text-foreground mb-1">Share this memoir</h2>
+            <p className="text-sm text-muted-foreground mb-6">
               Publishing locks the memoir and makes it shareable. This cannot be undone.
             </p>
 
             {error && (
-              <div role="alert" className="mb-4 flex items-start gap-3 rounded-md border border-line bg-canvas px-4 py-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-alert shrink-0 mt-2" aria-hidden="true" />
-                <p className="text-small text-ink">{error}</p>
+              <div role="alert" className="mb-4 flex items-start gap-3 rounded-md border border-border bg-background px-4 py-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 mt-2" aria-hidden="true" />
+                <p className="text-xs text-foreground">{error}</p>
               </div>
             )}
 
             {loading ? (
-              <p className="text-body-ui text-ink-muted py-6 text-center">Working…</p>
+              <p className="text-sm text-muted-foreground py-6 text-center">Working…</p>
             ) : needsPublish ? (
               <Button type="button" onClick={handlePublish} className="w-full">
                 Publish and create share link
               </Button>
             ) : justRevoked ? (
               <div className="text-center py-4">
-                <p className="text-body-ui text-ink mb-1">This link has been revoked.</p>
-                <p className="text-small text-ink-muted mb-5">Anyone who had it can no longer open this memoir.</p>
+                <p className="text-sm text-foreground mb-1">This link has been revoked.</p>
+                <p className="text-xs text-muted-foreground mb-5">Anyone who had it can no longer open this memoir.</p>
                 <Button type="button" onClick={handleCreateNewLink}>
                   Create a new link
                 </Button>
@@ -230,7 +230,7 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
                     <button
                       type="button"
                       onClick={handleCopy}
-                      className="px-4 rounded-sm bg-brass text-on-brass flex items-center justify-center cursor-pointer hover:bg-brass-bright transition-colors shrink-0"
+                      className="px-4 rounded-sm bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary transition-colors shrink-0"
                     >
                       {copied ? <Check size={16} /> : <Copy size={16} />}
                     </button>
@@ -239,7 +239,7 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
 
                 <div>
                   <Label htmlFor="share-password">Access password</Label>
-                  <p className="text-small text-ink-muted mb-2 -mt-1">
+                  <p className="text-xs text-muted-foreground mb-2 -mt-1">
                     Give this password to family members personally -- they need it, plus their name, to open the link.
                   </p>
                   <div className="flex gap-2">
@@ -255,7 +255,7 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
                       type="button"
                       onClick={handleSavePassword}
                       disabled={savingPassword || password.length === 0}
-                      className="px-4 rounded-sm border border-line text-ink-secondary text-small font-semibold cursor-pointer hover:bg-surface-sunk transition-colors disabled:opacity-50 shrink-0"
+                      className="px-4 rounded-sm border border-border text-muted-foreground text-xs font-semibold cursor-pointer hover:bg-secondary transition-colors disabled:opacity-50 shrink-0"
                     >
                       {savingPassword ? "Saving…" : passwordSaved ? "Saved" : "Save"}
                     </button>
@@ -264,8 +264,8 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
 
                 <div className="flex items-center justify-between py-1">
                   <div>
-                    <p className="text-body-ui font-medium text-ink">Allow comments</p>
-                    <p className="text-small text-ink-muted">Family who open the link can leave notes under their name.</p>
+                    <p className="text-sm font-medium text-foreground">Allow comments</p>
+                    <p className="text-xs text-muted-foreground">Family who open the link can leave notes under their name.</p>
                   </div>
                   <button
                     type="button"
@@ -274,18 +274,18 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
                     onClick={handleToggleComments}
                     disabled={savingComments}
                     className={`w-11 h-6 rounded-full relative transition-colors shrink-0 cursor-pointer disabled:opacity-50 ${
-                      shareLink.can_comment ? "bg-brass" : "bg-surface-sunk border border-line"
+                      shareLink.can_comment ? "bg-primary" : "bg-secondary border border-border"
                     }`}
                   >
                     <span
-                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-surface transition-transform ${
+                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-card transition-transform ${
                         shareLink.can_comment ? "translate-x-5" : "translate-x-0"
                       }`}
                     />
                   </button>
                 </div>
 
-                <Button type="button" onClick={() => triggerExport("memoir")} disabled={isExporting} variant="secondary" className="w-full">
+                <Button type="button" onClick={() => triggerExport("memoir")} disabled={isExporting} variant="outline" className="w-full">
                   {isExporting ? "Preparing PDF…" : "Download PDF"}
                 </Button>
 
@@ -293,7 +293,7 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
                   type="button"
                   onClick={handleRevoke}
                   disabled={revoking}
-                  className="w-full py-2.5 rounded-sm text-small font-semibold text-alert hover:bg-surface-sunk transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  className="w-full py-2.5 rounded-sm text-xs font-semibold text-destructive hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   <Ban size={14} />
                   {revoking ? "Revoking…" : "Revoke this link"}

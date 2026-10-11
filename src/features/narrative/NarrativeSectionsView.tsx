@@ -41,20 +41,19 @@ export function NarrativeSectionsView({
 
   return (
     <div className="flex flex-col gap-8">
-      {showLabel && (
-        <p className="text-micro uppercase tracking-[0.06em] text-ink-muted">Composed from your family&apos;s own memories</p>
-      )}
       {sections.map((section, index) => (
-        <div key={section.id} className="pl-4 border-l-2 border-brass-deep">
+        <div key={section.id}>
           <p
             className={cn(
-              "font-serif text-body-read font-light text-ink-secondary whitespace-pre-wrap",
+              "text-sm text-foreground leading-relaxed whitespace-pre-wrap",
               dropCapFirst && index === 0 && DROP_CAP_CLASS,
             )}
           >
             {section.body}
           </p>
-          <p className="mt-2 text-micro uppercase tracking-[0.06em] text-ink-muted font-semibold">Composed by AI</p>
+          {showLabel && (
+            <p className="mt-3 text-[11px] text-muted-foreground">Composed with AI &middot; from family memories</p>
+          )}
           <NarrativeSources memoirId={memoirId} sectionId={section.id} shareToken={shareToken} readerToken={readerToken} />
         </div>
       ))}
