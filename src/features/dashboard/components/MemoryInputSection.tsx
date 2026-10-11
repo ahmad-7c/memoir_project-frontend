@@ -83,7 +83,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                 key={key}
                 type="button"
                 onClick={() => setActiveInput(key)}
-                className="flex flex-col items-start gap-3 p-6 rounded-md border border-line bg-surface hover:border-accent transition-colors text-left cursor-pointer min-h-11"
+                className="flex flex-col items-start gap-3 p-6 rounded-md border border-line bg-surface hover:border-brass-deep transition-colors text-left cursor-pointer min-h-11"
               >
                 <span className="w-10 h-10 rounded-full border border-line flex items-center justify-center text-ink-secondary">
                   <Icon size={16} />
@@ -167,7 +167,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                     <button
                       type="button"
                       onClick={() => setIsTextExpanded(true)}
-                      className="w-full text-left rounded-sm border border-line bg-surface-sunk px-4 py-3 text-body-ui text-ink-muted hover:border-accent transition-colors cursor-pointer min-h-11"
+                      className="w-full text-left rounded-sm border border-line bg-surface-sunk px-4 py-3 text-body-ui text-ink-muted hover:border-brass-deep transition-colors cursor-pointer min-h-11"
                     >
                       {inputContent || "Click here to expand and write freely"}
                     </button>
@@ -183,7 +183,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                       type="button"
                       onClick={recording ? stopRecording : startRecording}
                       className={`w-11 h-11 rounded-full flex items-center justify-center shrink-0 transition-colors cursor-pointer ${
-                        recording ? "bg-alert text-on-accent" : "bg-accent text-on-accent hover:bg-accent-hover"
+                        recording ? "bg-alert text-on-brass" : "bg-brass text-on-brass hover:bg-brass-bright"
                       }`}
                     >
                       {recording ? <Square size={16} /> : <Mic size={16} />}
@@ -220,7 +220,7 @@ export function MemoryInputSection(props: MemoryInputSectionProps) {
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full flex items-center justify-center gap-3 rounded-sm border border-line bg-surface-sunk px-6 py-6 text-body-ui text-ink-secondary hover:border-accent transition-colors cursor-pointer min-h-11"
+                      className="w-full flex items-center justify-center gap-3 rounded-sm border border-line bg-surface-sunk px-6 py-6 text-body-ui text-ink-secondary hover:border-brass-deep transition-colors cursor-pointer min-h-11"
                     >
                       <Camera size={18} />
                       Attach a photo

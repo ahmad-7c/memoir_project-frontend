@@ -1,9 +1,12 @@
 @import "tailwindcss";
 
 /*
- * Theme system for Memoir. Two fully-designed modes ("Morning" / "Evening"),
- * not one palette inverted. Every neutral below carries a tint on purpose --
- * no pure #000/#FFF anywhere, including this file.
+ * Pine and brass. Pine is the default (dark) mode; Pine Light is the
+ * daytime companion. Every neutral below carries a tint on purpose -- no
+ * pure #000/#FFF anywhere, including this file. Where the brief's own Pine
+ * Light spec called for #FFFFFF (--surface-raised), it flagged its own
+ * violation and gave the real value to use instead (#FAFCF9); that
+ * substitution is applied directly below, not left as a TODO.
  *
  * Dark mode is resolved two ways, deliberately: a `prefers-color-scheme`
  * block covers a user who has never touched the toggle (and the brief
@@ -12,98 +15,145 @@
  * the OS setting either direction. The anti-flash script always writes one
  * or the other to <html> before paint, so in practice the attribute block is
  * what applies almost immediately -- the media block is the no-JS fallback.
+ *
+ * Pine (dark) is written on :root directly, since it's the product's
+ * default -- Pine Light is the override, not the other way around.
  */
 
 :root {
-  /* ---- Morning (light) ---- */
-  --canvas: #eef1ef;
-  --surface: #f6f8f6;
-  --surface-sunk: #e5e9e7;
-  --ink: #283330;
-  --ink-secondary: #5e6b66;
-  --ink-muted: #8a9793;
-  --line: #d6dcd9;
-  --accent: #c4705a;
-  --accent-hover: #d4886f;
-  --accent-soft: #e8cfc7;
-  --calm: #7e9b93;
-  --alert: #a85d4e;
+  /* ---- Pine (dark, default) ---- */
+  --canvas: #131a17;
+  --canvas-deep: #0e1411;
+  --surface: #1c2520;
+  --surface-raised: #233029;
+  --ink: #e5ebe5;
+  --ink-secondary: #95a599;
+  --ink-muted: #6e7d72; /* decorative only -- never body text, see below */
+  --line: #273429;
+  --line-bright: #35463a;
 
-  /*
-   * Text color for anything sitting ON TOP of an accent fill (primary
-   * buttons). Verified by computing actual WCAG contrast rather than
-   * assuming -- --accent is a mid-luminance clay, so NEITHER a light nor a
-   * dark text color clears normal-text AA against it (best case is ~3.6:1
-   * in light mode), only the large-text 3:1 threshold. Button labels on an
-   * accent fill are therefore set bold at >=19px everywhere (see Button.tsx)
-   * so this is a real AA pass, not a fudge. --accent-hover was also
-   * re-derived LIGHTER rather than darker in light mode for the same
-   * reason: darkening it toward this dark text color destroys contrast
-   * instead of improving it.
-   */
-  --on-accent: #283330;
+  /* Brass -- exactly three values. Measured contrast against --canvas:
+     brass ~8.0:1, more than enough for text, numerals and hairlines alike
+     in this mode. */
+  --brass: #c7ab7c;
+  --brass-bright: #e3cca0;
+  --brass-deep: #8f7449;
 
-  /* Motion -- slow and resolved, never bouncy. */
-  --duration: 240ms;
-  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Text/icon colour for anything sitting ON a brass fill (the primary
+     button). canvas-deep on brass measures ~8.5:1 here -- comfortably AA
+     even before the label's own bold weight is counted. */
+  --on-brass: #0e1411;
+
+  --calm: #7fa68c;
+  --alert: #c98f6e;
+
+  /* Motion -- slow and resolved, never bouncy or springy. This is the one
+     curve used for every reveal and transition in the product. */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration: 260ms;
 }
 
-@media (prefers-color-scheme: dark) {
+/*
+ * Pine is the product's default, not a mirror of the OS setting -- Pine
+ * Light is a deliberate daytime opt-in via the toggle, not something the
+ * system switches to automatically. Both blocks below are still provided,
+ * per the two-selector requirement: the media block is the no-JS fallback
+ * (a visitor with scripting disabled, so the anti-flash script in
+ * layout.tsx never runs, still gets Pine); the attribute block is what an
+ * explicit dark choice resolves to once the toggle has been used. Both
+ * simply restate :root, since :root already IS Pine -- there is nothing to
+ * override, only to make explicit.
+ */
+@media (prefers-color-scheme: dark), (prefers-color-scheme: light) {
   :root:not([data-theme="light"]) {
-    --canvas: #1a2228;
-    --surface: #222c33;
-    --surface-sunk: #151c21;
-    --ink: #e2e6e3;
-    --ink-secondary: #a3b0ac;
-    --ink-muted: #76847f;
-    --line: #313c43;
-    --accent: #d98c72;
-    --accent-hover: #e4a188;
-    --accent-soft: #3a2e2a;
-    --calm: #8fb0a6;
-    --alert: #c47b6a;
-    --on-accent: #1a2228;
+    --canvas: #131a17;
+    --canvas-deep: #0e1411;
+    --surface: #1c2520;
+    --surface-raised: #233029;
+    --ink: #e5ebe5;
+    --ink-secondary: #95a599;
+    --ink-muted: #6e7d72;
+    --line: #273429;
+    --line-bright: #35463a;
+    --brass: #c7ab7c;
+    --brass-bright: #e3cca0;
+    --brass-deep: #8f7449;
+    --on-brass: #0e1411;
+    --calm: #7fa68c;
+    --alert: #c98f6e;
   }
 }
 
 :root[data-theme="dark"] {
-  --canvas: #1a2228;
-  --surface: #222c33;
-  --surface-sunk: #151c21;
-  --ink: #e2e6e3;
-  --ink-secondary: #a3b0ac;
-  --ink-muted: #76847f;
-  --line: #313c43;
-  --accent: #d98c72;
-  --accent-hover: #e4a188;
-  --accent-soft: #3a2e2a;
-  --calm: #8fb0a6;
-  --alert: #c47b6a;
-  --on-accent: #1a2228;
+  --canvas: #131a17;
+  --canvas-deep: #0e1411;
+  --surface: #1c2520;
+  --surface-raised: #233029;
+  --ink: #e5ebe5;
+  --ink-secondary: #95a599;
+  --ink-muted: #6e7d72;
+  --line: #273429;
+  --line-bright: #35463a;
+  --brass: #c7ab7c;
+  --brass-bright: #e3cca0;
+  --brass-deep: #8f7449;
+  --on-brass: #0e1411;
+  --calm: #7fa68c;
+  --alert: #c98f6e;
+}
+
+:root[data-theme="light"] {
+  /* ---- Pine Light (companion, daytime) ---- */
+  --canvas: #edf1ec;
+  --canvas-deep: #e0e7df;
+  --surface: #f5f8f4;
+  --surface-raised: #fafcf9; /* brief's own #FFFFFF flagged as wrong; corrected per its instruction */
+  --ink: #1a231d;
+  --ink-secondary: #4f5e54;
+  --ink-muted: #7e8d83;
+  --line: #d5ded6;
+  --line-bright: #bfccc1;
+
+  /* Brass, darkened for AA on a light ground. Measured ~3.5:1 against
+     --canvas -- enough for large/bold text and hairlines (the large-text
+     3:1 threshold), not for small running text. Brass is never used as
+     small body-text colour in this theme (see the usage rule in Button /
+     NarrativeSectionsView) specifically because of this measurement, not
+     by accident. */
+  --brass: #9a7b45;
+  --brass-bright: #b89660;
+  --brass-deep: #6e5631;
+
+  /* ink-on-brass here measures ~4.1:1 -- large-text AA, not normal-text.
+     Every brass-filled control keeps its label bold at >=19px for exactly
+     this reason (same pattern as --on-brass in dark mode, carried through
+     for consistency even though dark mode clears normal-text AA outright). */
+  --on-brass: #1a231d;
+
+  --calm: #5c8268;
+  --alert: #9e5f3f;
 }
 
 @theme inline {
-  /* Fonts: Fraunces carries anything a person (or the AI, on their behalf)
-     wrote; Instrument Sans carries anything the interface says about
-     itself. Caveat is kept only for the one literally-handwritten note on
-     the landing page -- it is not part of the two-family system. */
   --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --font-caveat: var(--font-caveat), cursive;
 
   --color-canvas: var(--canvas);
+  --color-canvas-deep: var(--canvas-deep);
   --color-surface: var(--surface);
-  --color-surface-sunk: var(--surface-sunk);
+  --color-surface-raised: var(--surface-raised);
   --color-ink: var(--ink);
   --color-ink-secondary: var(--ink-secondary);
   --color-ink-muted: var(--ink-muted);
   --color-line: var(--line);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-accent-soft: var(--accent-soft);
+  --color-line-bright: var(--line-bright);
+  --color-brass: var(--brass);
+  --color-brass-bright: var(--brass-bright);
+  --color-brass-deep: var(--brass-deep);
+  --color-on-brass: var(--on-brass);
   --color-calm: var(--calm);
   --color-alert: var(--alert);
-  --color-on-accent: var(--on-accent);
 
   /* Corner radius: 4px on controls, 8px max on panels. Nothing rounder. */
   --radius-sm: 4px;
@@ -113,9 +163,8 @@
   --default-transition-timing-function: var(--ease);
 
   /* Named type scale (Display / Heading / Subhead / Body-read / Body-ui /
-     Small / Micro) rather than Tailwind's generic sizes -- so a component
-     reads `text-display` or `text-body-read`, naming its role in the
-     content/chrome split rather than a pixel value. */
+     Small / Micro) -- unchanged by this rebuild, which is a colour/material/
+     motion/imagery brief, not a new type scale. */
   --text-display: clamp(2.125rem, 1.65rem + 2.4vw, 4rem);
   --text-display--line-height: 1.1;
   --text-display--letter-spacing: -0.02em;
@@ -149,28 +198,88 @@ body {
 }
 
 /*
- * A single, very faint paper grain over the canvas -- subliminal by design.
- * Fixed and non-interactive; it sits over the whole viewport rather than
- * being re-applied per-section, which is what keeps it consistent and cheap.
+ * Brass sheen -- the one place a gradient is permitted on a flat element.
+ * It is a material description (metal catching light), not decoration: any
+ * horizontal brass rule longer than 40px uses this three-stop treatment
+ * instead of a flat brass fill.
  */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  pointer-events: none;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 180px 180px;
+.brass-sheen {
+  background: linear-gradient(90deg, var(--brass-deep) 0%, var(--brass-bright) 50%, var(--brass-deep) 100%);
 }
 
-:root[data-theme="dark"] body::before {
-  opacity: 0.035;
+/*
+ * The one-time travelling highlight band on a brass rule, run by adding
+ * .brass-sheen-sweep once an element has entered the viewport (see
+ * useScrollReveal / BrassRule) -- never a repeating loop. The band itself is
+ * a second, brighter gradient layer sliding across via background-position.
+ */
+.brass-sheen-sweep {
+  background-image: linear-gradient(90deg, var(--brass-deep) 0%, var(--brass-bright) 50%, var(--brass-deep) 100%),
+    linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  background-size: 100% 100%, 220% 100%;
+  background-position: 0 0, -220% 0;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) body::before {
-    opacity: 0.035;
+
+@media (prefers-reduced-motion: no-preference) {
+  .brass-sheen-sweep[data-run="true"] {
+    background-position: 0 0, 220% 0;
+    transition: background-position 1.4s var(--ease);
   }
+}
+
+/*
+ * Specular top edge -- cards and panels get a 1px top border one step
+ * brighter than their other borders, reading as light falling from above.
+ * Apply alongside a normal `border border-line`; this only overrides the
+ * top side.
+ */
+.specular-top {
+  border-top-color: var(--line-bright);
+}
+
+/* Links: underline draws left to right, not a static border-bottom. */
+.underline-draw {
+  background-image: linear-gradient(90deg, currentColor 0%, currentColor 100%);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 320ms var(--ease);
+}
+.underline-draw:hover,
+.underline-draw:focus-visible {
+  background-size: 100% 1px;
+}
+
+::selection {
+  background: var(--brass-deep);
+  color: var(--ink);
+}
+
+/*
+ * Pine duotone grading for self-hosted atmospheric photographs (GradedImage)
+ * -- static values, so these are real classes rather than inline styles,
+ * keeping the CSP's style-src 'unsafe-inline' exception limited to the
+ * handful of genuinely per-instance, JS-computed styles that have no static
+ * equivalent (reading progress width, parallax transform, and similar).
+ */
+.photo-grade {
+  filter: saturate(0.78) contrast(1.06) brightness(0.92);
+}
+.duotone-color {
+  background: var(--canvas);
+  opacity: 0.34;
+  mix-blend-mode: color;
+}
+.duotone-multiply {
+  background: var(--canvas);
+  opacity: 0.18;
+  mix-blend-mode: multiply;
+}
+.fade-to-canvas {
+  background: linear-gradient(to bottom, transparent, var(--canvas) 85%);
+}
+.hero-scrim {
+  background: linear-gradient(to bottom, transparent 0%, var(--canvas) 72%);
 }
 
 :focus-visible {

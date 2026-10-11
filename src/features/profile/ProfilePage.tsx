@@ -116,7 +116,7 @@ export default function ProfilePage() {
               <div className="flex flex-col gap-5">
                 {profile.memoirs.map((memoir) => (
                   <button key={memoir.id} type="button" onClick={() => openMemoir(memoir)} className="text-left w-full cursor-pointer">
-                    <Card className="flex flex-col sm:flex-row hover:border-accent transition-colors">
+                    <Card className="flex flex-col sm:flex-row hover:border-brass-deep transition-colors">
                       <div className="sm:w-56 shrink-0">
                         {memoir.cover_image_url ? (
                           <Card.Media src={memoir.cover_image_url} alt={memoir.subject_name} />
@@ -132,7 +132,7 @@ export default function ProfilePage() {
                       <div className="flex-1 min-w-0 p-6 flex flex-col justify-center">
                         <div className="flex items-start justify-between gap-3 mb-1">
                           <h3 className="font-serif text-display text-ink truncate">{memoir.subject_name}</h3>
-                          {memoir.status === "published" && <Badge variant="calm">Published</Badge>}
+                          {memoir.status === "published" && <Badge variant="brass">Published</Badge>}
                         </div>
                         <p className="text-small text-ink-muted mb-2">{formatDates(memoir)}</p>
                         <p className="text-small text-ink-muted">

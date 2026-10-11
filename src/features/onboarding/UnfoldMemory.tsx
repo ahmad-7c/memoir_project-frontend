@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
+import { OnboardingBackdrop } from "./OnboardingBackdrop";
+import backdropImage from "../../../public/images/open-book-blur.jpg";
 
 const PROMPTS = [
   "A moment that still makes me smile",
@@ -43,7 +45,8 @@ export default function UnfoldMemory() {
   };
 
   return (
-    <section className="min-h-screen bg-canvas flex flex-col items-center px-6 py-16">
+    <section className="relative isolate min-h-screen bg-canvas flex flex-col items-center px-6 py-16">
+      <OnboardingBackdrop src={backdropImage} />
       <div className="w-full max-w-125">
         <div className="mb-6 flex justify-start">
           <button
@@ -85,7 +88,7 @@ export default function UnfoldMemory() {
                 key={prompt}
                 type="button"
                 onClick={() => handlePromptClick(prompt)}
-                className="text-small text-ink-secondary border border-line rounded-sm px-3 py-1.5 hover:border-accent hover:text-ink transition-colors cursor-pointer"
+                className="text-small text-ink-secondary border border-line rounded-sm px-3 py-1.5 hover:border-brass-deep hover:text-ink transition-colors cursor-pointer"
               >
                 {prompt}
               </button>

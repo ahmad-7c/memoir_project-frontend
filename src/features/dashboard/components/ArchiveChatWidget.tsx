@@ -126,7 +126,7 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
                   if (e.key === "Enter") handleSendChat();
                 }}
                 placeholder="Search your memories…"
-                className="w-full bg-surface-sunk border border-line rounded-sm px-3 py-2.5 text-body-ui outline-none focus:border-accent text-ink placeholder:text-ink-muted transition-colors"
+                className="w-full bg-surface-sunk border border-line rounded-sm px-3 py-2.5 text-body-ui outline-none focus:border-brass text-ink placeholder:text-ink-muted transition-colors"
               />
             </div>
           </motion.div>

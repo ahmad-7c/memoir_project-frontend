@@ -2,6 +2,8 @@
 
 import { NarrativeSection } from "@/lib/api/client";
 import { NarrativeSources } from "./NarrativeSources";
+import { cn } from "@/lib/utils";
+import { DROP_CAP_CLASS } from "@/lib/dropCap";
 
 interface NarrativeSectionsViewProps {
   memoirId: string;
@@ -11,6 +13,8 @@ interface NarrativeSectionsViewProps {
   readerToken?: string;
   /** Set false when rendering per-chapter and the page shows the label once elsewhere. */
   showLabel?: boolean;
+  /** The published memoir page only: this chapter opens with these sections. */
+  dropCapFirst?: boolean;
 }
 
 /**
@@ -20,8 +24,10 @@ interface NarrativeSectionsViewProps {
  * the narrative against what was actually said, from either side.
  *
  * Each section is set lighter-weight Fraunces in --ink-secondary with a
- * hairline rule to its left, so a reader can tell at a glance -- without
- * reading closely -- which words are a person's and which are composed.
+ * brass hairline rule to its left and a small persistent label, so a reader
+ * can tell at a glance -- without reading closely -- which words are a
+ * person's and which are composed. Brass here is one of this screen's two
+ * rationed brass elements (the other being the chapter numeral).
  */
 export function NarrativeSectionsView({
   memoirId,
@@ -29,6 +35,7 @@ export function NarrativeSectionsView({
   shareToken,
   readerToken,
   showLabel = true,
+  dropCapFirst = false,
 }: NarrativeSectionsViewProps) {
   if (sections.length === 0) return null;
 
@@ -37,9 +44,16 @@ export function NarrativeSectionsView({
       {showLabel && (
         <p className="text-micro uppercase tracking-[0.06em] text-ink-muted">Composed from your family&apos;s own memories</p>
       )}
-      {sections.map((section) => (
-        <div key={section.id} className="pl-4 border-l-2 border-line">
-          <p className="font-serif text-body-read font-light text-ink-secondary whitespace-pre-wrap">{section.body}</p>
+      {sections.map((section, index) => (
+        <div key={section.id} className="pl-4 border-l-2 border-brass-deep">
+          <p
+            className={cn(
+              "font-serif text-body-read font-light text-ink-secondary whitespace-pre-wrap",
+              dropCapFirst && index === 0 && DROP_CAP_CLASS,
+            )}
+          >
+            {section.body}
+          </p>
           <p className="mt-2 text-micro uppercase tracking-[0.06em] text-ink-muted font-semibold">Composed by AI</p>
           <NarrativeSources memoirId={memoirId} sectionId={section.id} shareToken={shareToken} readerToken={readerToken} />
         </div>

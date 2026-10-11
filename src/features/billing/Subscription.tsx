@@ -75,7 +75,7 @@ export default function Subscription() {
               the moment subscriptions open. Nothing about your memoir depends on this.
             </p>
             <Button size="lg" onClick={handleContinueFree} className="w-full">
-              Continue on the free plan
+              Continue free
             </Button>
           </motion.div>
         )}

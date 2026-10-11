@@ -5,20 +5,37 @@ import { Moon, Sun } from "lucide-react";
 
 /**
  * Manual dark-mode override. The anti-flash script in layout.tsx already
- * sets data-theme from the stored preference (or the OS setting) before
- * paint; this just lets the user flip it and persists the choice.
+ * sets data-theme on <html> from the stored preference before paint; this
+ * just lets the user flip it and persists the choice.
+ *
+ * The icon/label can't read that attribute during the initial render: the
+ * server has no concept of it (it's written by a script, not by React), so
+ * a lazy useState initializer that reads it would make the server render
+ * one icon and the client's first render show the other -- an actual,
+ * confirmed hydration mismatch (lucide-sun vs lucide-moon), not just a
+ * suppressible attribute diff. Instead this always renders the same thing
+ * (Moon, "dark") on the first pass, matching the server exactly, then
+ * corrects itself from a post-mount effect -- a normal client-side update
+ * at that point, not a hydration diff, so there's nothing to suppress.
  */
 export function ThemeToggle({ className = "" }: { className?: string }) {
-  // Lazy-initialized from the attribute the anti-flash script already set,
-  // not from matchMedia again -- the two must never disagree.
-  const [isDark, setIsDark] = useState<boolean>(() => {
-    if (typeof document === "undefined") return false;
-    return document.documentElement.getAttribute("data-theme") === "dark";
-  });
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
+    // Deferred a tick so no setState call executes synchronously within the
+    // effect body itself -- same constraint worked around elsewhere in this
+    // codebase (e.g. AudioPlayer, BookCoverExperience).
+    Promise.resolve().then(() => {
+      setIsDark(document.documentElement.getAttribute("data-theme") === "dark");
+      setMounted(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
     document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-  }, [isDark]);
+  }, [isDark, mounted]);
 
   const toggle = () => {
     const next = !isDark;
@@ -31,15 +48,17 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     }
   };
 
+  const showLight = mounted && isDark;
+
   return (
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={showLight ? "Switch to light mode" : "Switch to dark mode"}
+      title={showLight ? "Switch to light mode" : "Switch to dark mode"}
       className={`inline-flex items-center justify-center w-11 h-11 rounded-sm border border-line text-ink-secondary hover:text-ink hover:bg-surface-sunk transition-colors cursor-pointer ${className}`}
     >
-      {isDark ? <Sun size={16} /> : <Moon size={16} />}
+      {showLight ? <Sun size={16} /> : <Moon size={16} />}
     </button>
   );
 }

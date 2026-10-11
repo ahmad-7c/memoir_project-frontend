@@ -19,12 +19,15 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
+import { OnboardingBackdrop } from "./OnboardingBackdrop";
+import backdropImage from "../../../public/images/still-water-dawn.jpg";
 
 export default function InviteFamilyFriends() {
   const router = useRouter();
 
   return (
-    <section className="min-h-screen flex items-center justify-center bg-canvas px-6 py-16">
+    <section className="relative isolate min-h-screen flex items-center justify-center bg-canvas px-6 py-16">
+      <OnboardingBackdrop src={backdropImage} />
       <div className="w-full max-w-125">
         <div className="mb-6 flex justify-start">
           <button
@@ -45,7 +48,7 @@ export default function InviteFamilyFriends() {
           className="text-center"
         >
           <h1 className="font-serif text-heading text-ink leading-snug">
-            You remember it. <span className="text-accent">They might too.</span>
+            You remember it. <span className="text-brass">They might too.</span>
           </h1>
 
           <p className="mt-4 text-body-ui text-ink-secondary max-w-sm mx-auto">

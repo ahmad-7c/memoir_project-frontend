@@ -15,6 +15,11 @@ import MemoirSidebar from "@/features/FinalMemoir/MemoirSidebar";
 import { ChapterSchema } from "@/features/dashboard/types/organization";
 import type { Chapter } from "@/features/dashboard/types/organization";
 import { z } from "zod";
+import { toRoman } from "@/utils/toRoman";
+import { DROP_CAP_CLASS } from "@/lib/dropCap";
+import { cn } from "@/lib/utils";
+import { ReadingProgress } from "@/features/FinalMemoir/ReadingProgress";
+import { StickyChapterLabel } from "@/features/FinalMemoir/StickyChapterLabel";
 
 interface RealMemory {
   id: string;
@@ -26,9 +31,18 @@ interface RealMemory {
 /**
  * Card for a real memory row. Comments are margin notes (MemoryComments) --
  * no reaction/like affordance here by design; see the comments feature's
- * own docstring.
+ * own docstring. `dropCap` is set on exactly one memory per memoir -- the
+ * first one in a chapter that has no AI narrative of its own to open with.
  */
-function RealMemoryCard({ memoirId, memory }: { memoirId: string; memory: RealMemory }) {
+function RealMemoryCard({
+  memoirId,
+  memory,
+  dropCap = false,
+}: {
+  memoirId: string;
+  memory: RealMemory;
+  dropCap?: boolean;
+}) {
   const body = (memory.body_text ?? "").trim();
 
   return (
@@ -37,7 +51,14 @@ function RealMemoryCard({ memoirId, memory }: { memoirId: string; memory: RealMe
       {memory.occurred_start && <p className="text-micro uppercase tracking-[0.06em] text-ink-muted mb-3">{memory.occurred_start}</p>}
 
       {body ? (
-        <p className="font-serif text-body-read text-ink-secondary leading-relaxed whitespace-pre-wrap">{body}</p>
+        <p
+          className={cn(
+            "font-serif text-body-read text-ink-secondary leading-relaxed whitespace-pre-wrap",
+            dropCap && DROP_CAP_CLASS,
+          )}
+        >
+          {body}
+        </p>
       ) : (
         <p className="font-serif text-body-read text-ink-muted italic">This memory has no text yet.</p>
       )}
@@ -212,7 +233,9 @@ export default function FinalMemoirPage() {
 
   return (
     <div className="min-h-screen bg-canvas">
+      <ReadingProgress />
       <MemoirHeader isVisible={isVisible} />
+      <StickyChapterLabel chapters={filteredChapters.map((c) => ({ id: `chapter-${c.id}`, title: c.title }))} />
 
       <div className="pt-14">
         <MemoirHero
@@ -257,37 +280,55 @@ export default function FinalMemoirPage() {
                 No entries found matching your search.
               </p>
             ) : (
-              filteredChapters.map((chapter) => (
-                <div key={chapter.id} className="mb-16">
-                  <div className="border-b border-line pb-4 mb-6">
-                    <h2 className="font-serif text-heading text-ink mb-1">{chapter.title}</h2>
-                    {chapter.summary && (
-                      <div className="mt-3 pl-4 border-l-2 border-line">
-                        <p className="font-serif text-body-read font-light text-ink-secondary">{chapter.summary}</p>
-                        <p className="mt-2 text-micro uppercase tracking-[0.06em] text-ink-muted font-semibold">
-                          Composed by AI
-                        </p>
+              filteredChapters.map((chapter, chapterIndex) => {
+                const chapterNarrative = narrativeSections.filter((s) => s.chapter_id === chapter.id);
+                const chapterOpensWithNarrative = chapterNarrative.length > 0;
+
+                return (
+                  <div key={chapter.id} id={`chapter-${chapter.id}`} className="mb-16">
+                    <div className="border-b border-line pb-4 mb-6 flex items-baseline gap-4">
+                      <span className="font-serif text-heading text-brass shrink-0" aria-hidden="true">
+                        {toRoman(chapterIndex + 1)}
+                      </span>
+                      <div>
+                        <h2 className="font-serif text-heading text-ink mb-1">{chapter.title}</h2>
+                        {chapter.summary && (
+                          <div className="mt-3 pl-4 border-l-2 border-brass-deep">
+                            <p className="font-serif text-body-read font-light text-ink-secondary">{chapter.summary}</p>
+                            <p className="mt-2 text-micro uppercase tracking-[0.06em] text-ink-muted font-semibold">
+                              Composed by AI
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {chapterOpensWithNarrative && (
+                      <div className="mb-8">
+                        <NarrativeSectionsView
+                          memoirId={memoirId}
+                          sections={chapterNarrative}
+                          showLabel={false}
+                          dropCapFirst
+                        />
                       </div>
                     )}
+
+                    {chapter.memories.length === 0 ? (
+                      <p className="font-serif text-body-read text-ink-muted italic">No memories recorded in this chapter yet.</p>
+                    ) : (
+                      chapter.memories.map((mem, memIndex) => (
+                        <RealMemoryCard
+                          key={mem.id}
+                          memoirId={memoirId}
+                          memory={mem}
+                          dropCap={!chapterOpensWithNarrative && memIndex === 0}
+                        />
+                      ))
+                    )}
                   </div>
-
-                  {narrativeSections.some((s) => s.chapter_id === chapter.id) && (
-                    <div className="mb-8">
-                      <NarrativeSectionsView
-                        memoirId={memoirId}
-                        sections={narrativeSections.filter((s) => s.chapter_id === chapter.id)}
-                        showLabel={false}
-                      />
-                    </div>
-                  )}
-
-                  {chapter.memories.length === 0 ? (
-                    <p className="font-serif text-body-read text-ink-muted italic">No memories recorded in this chapter yet.</p>
-                  ) : (
-                    chapter.memories.map((mem) => <RealMemoryCard key={mem.id} memoirId={memoirId} memory={mem} />)
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </main>
 

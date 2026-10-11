@@ -1,10 +1,14 @@
-import ScatteredMemories from "./ScatteredMemories";
+import MemoirPassage from "./MemoirPassage";
+import ImageBand from "./ImageBand";
+import PriceLine from "./PriceLine";
 import CallToAction from "./CallToAction";
 
 export default function LandingPageScroll() {
   return (
     <div className="flex flex-col w-full">
-      <ScatteredMemories />
+      <MemoirPassage />
+      <ImageBand />
+      <PriceLine />
       <CallToAction />
     </div>
   );

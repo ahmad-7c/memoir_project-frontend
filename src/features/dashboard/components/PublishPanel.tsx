@@ -230,7 +230,7 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
                     <button
                       type="button"
                       onClick={handleCopy}
-                      className="px-4 rounded-sm bg-accent text-on-accent flex items-center justify-center cursor-pointer hover:bg-accent-hover transition-colors shrink-0"
+                      className="px-4 rounded-sm bg-brass text-on-brass flex items-center justify-center cursor-pointer hover:bg-brass-bright transition-colors shrink-0"
                     >
                       {copied ? <Check size={16} /> : <Copy size={16} />}
                     </button>
@@ -274,7 +274,7 @@ export function PublishPanel({ memoirId, open, onClose }: PublishPanelProps) {
                     onClick={handleToggleComments}
                     disabled={savingComments}
                     className={`w-11 h-6 rounded-full relative transition-colors shrink-0 cursor-pointer disabled:opacity-50 ${
-                      shareLink.can_comment ? "bg-accent" : "bg-surface-sunk border border-line"
+                      shareLink.can_comment ? "bg-brass" : "bg-surface-sunk border border-line"
                     }`}
                   >
                     <span

@@ -17,6 +17,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
+import { OnboardingBackdrop } from "./OnboardingBackdrop";
+import backdropImage from "../../../public/images/linen-weave.jpg";
 
 export default function MemoryMoment() {
   const router = useRouter();
@@ -95,7 +97,8 @@ export default function MemoryMoment() {
   }, []);
 
   return (
-    <section className="min-h-screen bg-canvas flex flex-col items-center px-6 py-16">
+    <section className="relative isolate min-h-screen bg-canvas flex flex-col items-center px-6 py-16">
+      <OnboardingBackdrop src={backdropImage} />
       <div className="w-full max-w-125 flex justify-start mb-6">
         <button
           type="button"

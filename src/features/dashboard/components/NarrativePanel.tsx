@@ -221,7 +221,7 @@ export function NarrativePanel({ memoirId, open, onClose }: NarrativePanelProps)
                               <button
                                 type="button"
                                 onClick={() => handleSaveEdit(section.id)}
-                                className="px-3 py-1.5 rounded-sm bg-accent text-on-accent text-small font-bold cursor-pointer"
+                                className="px-3 py-1.5 rounded-sm bg-brass text-on-brass text-small font-bold cursor-pointer"
                               >
                                 Save
                               </button>

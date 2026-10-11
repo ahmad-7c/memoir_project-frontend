@@ -132,7 +132,7 @@ export function MemoryComments({
                     onChange={(e) => setReplyDraft(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleReply(comment.id)}
                     placeholder="Write a reply…"
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-sm bg-surface-sunk border border-line text-small text-ink outline-none focus:border-accent transition-colors"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-sm bg-surface-sunk border border-line text-small text-ink outline-none focus:border-brass transition-colors"
                   />
                   <button
                     type="button"
@@ -155,7 +155,7 @@ export function MemoryComments({
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="Leave a note…"
-                className="flex-1 min-w-0 px-3 py-2 rounded-sm bg-surface-sunk border border-line text-small text-ink outline-none focus:border-accent transition-colors"
+                className="flex-1 min-w-0 px-3 py-2 rounded-sm bg-surface-sunk border border-line text-small text-ink outline-none focus:border-brass transition-colors"
               />
               <button
                 type="button"

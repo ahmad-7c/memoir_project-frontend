@@ -11,6 +11,11 @@ import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import MemoirHero from "@/features/FinalMemoir/MemoirHero";
+import { ReadingProgress } from "@/features/FinalMemoir/ReadingProgress";
+import { StickyChapterLabel } from "@/features/FinalMemoir/StickyChapterLabel";
+import { toRoman } from "@/utils/toRoman";
+import { DROP_CAP_CLASS } from "@/lib/dropCap";
+import { cn } from "@/lib/utils";
 
 type Stage = "loading" | "unlock" | "memoir" | "error";
 
@@ -20,12 +25,14 @@ function ReaderMemoryCard({
   canComment,
   shareToken,
   readerToken,
+  dropCap = false,
 }: {
   memoirId: string;
   memory: SharedMemory;
   canComment: boolean;
   shareToken: string;
   readerToken: string;
+  dropCap?: boolean;
 }) {
   const photos = memory.media.filter((m) => m.kind === "photo" && m.playback_url);
   const audio = memory.media.filter((m) => m.kind === "audio" && m.playback_url);
@@ -38,7 +45,12 @@ function ReaderMemoryCard({
       )}
 
       {memory.body_text && (
-        <p className="font-serif text-body-read text-ink-secondary leading-relaxed whitespace-pre-wrap">
+        <p
+          className={cn(
+            "font-serif text-body-read text-ink-secondary leading-relaxed whitespace-pre-wrap",
+            dropCap && DROP_CAP_CLASS,
+          )}
+        >
           {memory.body_text}
         </p>
       )}
@@ -240,10 +252,16 @@ export default function ContributorPage() {
 
   return (
     <div className="min-h-screen bg-canvas">
+      <ReadingProgress />
       {/* No cover image: the share API has no cover-image field for a
           reader-side memoir, so MemoirHero's own conditional handles that
           honestly rather than this page inventing a photo that isn't there. */}
       <MemoirHero subjectName={memoirData.subject_name} dates={dates} />
+      {hasChapters && (
+        <StickyChapterLabel
+          chapters={memoirData.chapters.map((c) => ({ id: `chapter-${c.id}`, title: c.title }))}
+        />
+      )}
 
       <main className="max-w-prose mx-auto px-6 pb-32">
         {!hasChapters && memoirData.narrative_sections.length > 0 && (
@@ -253,25 +271,32 @@ export default function ContributorPage() {
               sections={memoirData.narrative_sections}
               shareToken={token}
               readerToken={readerToken}
+              dropCapFirst
             />
           </div>
         )}
 
         {hasChapters ? (
-          memoirData.chapters.map((chapter) => {
+          memoirData.chapters.map((chapter, chapterIndex) => {
             const chapterMemories = memoirData.memories.filter((m) => m.chapter_id === chapter.id);
             const chapterNarrative = memoirData.narrative_sections.filter((s) => s.chapter_id === chapter.id);
+            const chapterOpensWithNarrative = chapterNarrative.length > 0;
 
             return (
-              <section key={chapter.id} className="mb-16">
-                <div className="mb-6 pb-4 border-b border-line">
-                  <h2 className="font-serif text-heading text-ink">{chapter.title}</h2>
-                  {chapter.summary && (
-                    <p className="font-serif text-body-read text-ink-secondary italic mt-2">{chapter.summary}</p>
-                  )}
+              <section key={chapter.id} id={`chapter-${chapter.id}`} className="mb-16">
+                <div className="mb-6 pb-4 border-b border-line flex items-baseline gap-4">
+                  <span className="font-serif text-heading text-brass shrink-0" aria-hidden="true">
+                    {toRoman(chapterIndex + 1)}
+                  </span>
+                  <div>
+                    <h2 className="font-serif text-heading text-ink">{chapter.title}</h2>
+                    {chapter.summary && (
+                      <p className="font-serif text-body-read text-ink-secondary italic mt-2">{chapter.summary}</p>
+                    )}
+                  </div>
                 </div>
 
-                {chapterNarrative.length > 0 && (
+                {chapterOpensWithNarrative && (
                   <div className="mb-8">
                     <NarrativeSectionsView
                       memoirId={memoirData.id}
@@ -279,6 +304,7 @@ export default function ContributorPage() {
                       shareToken={token}
                       readerToken={readerToken}
                       showLabel={false}
+                      dropCapFirst
                     />
                   </div>
                 )}
@@ -286,7 +312,7 @@ export default function ContributorPage() {
                 {chapterMemories.length === 0 ? (
                   <p className="font-serif text-body-read text-ink-muted italic py-2">No memories in this chapter yet.</p>
                 ) : (
-                  chapterMemories.map((memory) => (
+                  chapterMemories.map((memory, memIndex) => (
                     <ReaderMemoryCard
                       key={memory.id}
                       memoirId={memoirData.id}
@@ -294,6 +320,7 @@ export default function ContributorPage() {
                       canComment={memoirData.can_comment}
                       shareToken={token}
                       readerToken={readerToken}
+                      dropCap={!chapterOpensWithNarrative && memIndex === 0}
                     />
                   ))
                 )}
@@ -305,7 +332,7 @@ export default function ContributorPage() {
             Nothing has been added to this memoir yet.
           </p>
         ) : (
-          memoirData.memories.map((memory) => (
+          memoirData.memories.map((memory, index) => (
             <ReaderMemoryCard
               key={memory.id}
               memoirId={memoirData.id}
@@ -313,6 +340,7 @@ export default function ContributorPage() {
               canComment={memoirData.can_comment}
               shareToken={token}
               readerToken={readerToken}
+              dropCap={memoirData.narrative_sections.length === 0 && index === 0}
             />
           ))
         )}

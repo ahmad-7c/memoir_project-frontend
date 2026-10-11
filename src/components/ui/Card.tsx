@@ -2,7 +2,10 @@ import { cn } from "@/lib/utils";
 
 /**
  * An editorial tile -- a memoir in the owner's profile grid, a choice on
- * the empty dashboard. One hairline border, one surface tint, no shadow.
+ * the empty dashboard. One hairline border, one surface tint, no shadow;
+ * a specular top edge (one step brighter than the other three borders)
+ * reads as light falling from above. On hover the border alone warms from
+ * --line to --brass-deep over 260ms -- the card never moves or lifts.
  * Composes with a 3:2 media crop at the top (see Card.Media) and plain
  * content below; it never tries to carry equal weight against its
  * siblings by default -- that is each screen's layout decision, not this
@@ -18,7 +21,12 @@ export function Card({
   as?: "div" | "li";
 }) {
   return (
-    <Comp className={cn("bg-surface border border-line rounded-md overflow-hidden", className)}>
+    <Comp
+      className={cn(
+        "bg-surface border border-line specular-top rounded-md overflow-hidden transition-colors duration-[260ms] hover:border-brass-deep",
+        className,
+      )}
+    >
       {children}
     </Comp>
   );

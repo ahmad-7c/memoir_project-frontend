@@ -18,6 +18,8 @@ import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
+import { OnboardingBackdrop } from "./OnboardingBackdrop";
+import backdropImage from "../../../public/images/window-light-floor.jpg";
 
 interface OptionItem {
   id: string;
@@ -104,7 +106,8 @@ export default function MemorySubjectSelection() {
   };
 
   return (
-    <section className="min-h-screen bg-canvas flex items-center justify-center px-6 py-16">
+    <section className="relative isolate min-h-screen bg-canvas flex items-center justify-center px-6 py-16">
+      <OnboardingBackdrop src={backdropImage} />
       <div className="w-full max-w-125 flex flex-col items-center">
         <div className="mb-6 w-full flex justify-start">
           <button
@@ -144,7 +147,7 @@ export default function MemorySubjectSelection() {
                     key={option.id}
                     type="button"
                     onClick={() => handleSelect(option.id)}
-                    className="flex items-center gap-4 w-full text-left px-5 py-4 rounded-md border border-line bg-surface hover:border-accent transition-colors cursor-pointer min-h-11"
+                    className="flex items-center gap-4 w-full text-left px-5 py-4 rounded-md border border-line bg-surface hover:border-brass-deep transition-colors cursor-pointer min-h-11"
                   >
                     <span className="shrink-0 w-10 h-10 rounded-full border border-line flex items-center justify-center">
                       <IconComponent size={16} className="text-ink-secondary" strokeWidth={1.5} />

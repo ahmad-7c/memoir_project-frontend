@@ -55,7 +55,7 @@ export function DashboardHeader({
             placeholder="Search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-40 md:w-48 bg-surface-sunk border border-line rounded-sm pl-9 pr-3 py-2.5 text-body-ui text-ink placeholder:text-ink-muted outline-none focus:border-accent transition-colors"
+            className="w-40 md:w-48 bg-surface-sunk border border-line rounded-sm pl-9 pr-3 py-2.5 text-body-ui text-ink placeholder:text-ink-muted outline-none focus:border-brass transition-colors"
           />
         </div>
 

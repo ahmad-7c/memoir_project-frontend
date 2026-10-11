@@ -43,7 +43,7 @@ export default function MemoirActionBar({
           placeholder="Search this memoir"
           value={searchQuery}
           onChange={handleSearchTyping}
-          className="w-full bg-surface-sunk border border-line rounded-sm pl-9 pr-3 py-2.5 text-body-ui text-ink placeholder:text-ink-muted outline-none focus:border-accent transition-colors"
+          className="w-full bg-surface-sunk border border-line rounded-sm pl-9 pr-3 py-2.5 text-body-ui text-ink placeholder:text-ink-muted outline-none focus:border-brass transition-colors"
         />
       </div>
     </div>

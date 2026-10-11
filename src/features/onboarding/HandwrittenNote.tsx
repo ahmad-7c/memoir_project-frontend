@@ -9,10 +9,13 @@
 
 import { Button } from "@/components/ui/Button";
 import { OnboardingProgress } from "./OnboardingProgress";
+import { OnboardingBackdrop } from "./OnboardingBackdrop";
+import backdropImage from "../../../public/images/handwriting-blur.jpg";
 
 export default function HandwrittenNote() {
   return (
-    <section className="min-h-screen bg-canvas flex flex-col items-center justify-center px-6 py-16">
+    <section className="relative isolate min-h-screen bg-canvas flex flex-col items-center justify-center px-6 py-16">
+      <OnboardingBackdrop src={backdropImage} />
       <OnboardingProgress step={2} />
 
       <div className="relative w-full max-w-100 bg-surface border border-line rounded-md p-10 sm:p-12">
