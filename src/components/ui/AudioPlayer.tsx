@@ -23,9 +23,14 @@ export function AudioPlayer({ src, className = "" }: { src: string; className?: 
   const [duration, setDuration] = useState(0);
 
   useEffect(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
+    // Deferred a tick so no setState call executes synchronously within the
+    // effect body itself -- same constraint worked around elsewhere in this
+    // codebase (e.g. final-memoir/page.tsx).
+    Promise.resolve().then(() => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setDuration(0);
+    });
   }, [src]);
 
   const toggle = () => {

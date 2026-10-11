@@ -48,6 +48,11 @@ export default function FirstMemoirScreen() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
+  // Same real-world constraint as the onboarding version of this form: no
+  // future birth dates, and a date of passing has to fall between birth and
+  // today.
+  const today = new Date().toISOString().slice(0, 10);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -60,9 +65,23 @@ export default function FirstMemoirScreen() {
       setError("Please add a date of birth.");
       return;
     }
+    if (dob > today) {
+      setError("Date of birth can't be in the future.");
+      return;
+    }
     if (!isAlive && !dod.trim()) {
       setError('Please add a date of passing, or check "Still with us".');
       return;
+    }
+    if (!isAlive && dod.trim()) {
+      if (dod > today) {
+        setError("Date of passing can't be in the future.");
+        return;
+      }
+      if (dod < dob) {
+        setError("Date of passing can't be before their date of birth.");
+        return;
+      }
     }
 
     setCreating(true);
@@ -124,6 +143,7 @@ export default function FirstMemoirScreen() {
                 id="first-memoir-dob"
                 type="date"
                 value={dob}
+                max={today}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setDob(e.target.value)}
                 className="cursor-pointer"
               />
@@ -134,6 +154,8 @@ export default function FirstMemoirScreen() {
                 id="first-memoir-dod"
                 type="date"
                 value={dod}
+                min={dob || undefined}
+                max={today}
                 disabled={isAlive}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setDod(e.target.value)}
                 className="cursor-pointer"

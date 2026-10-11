@@ -44,7 +44,10 @@ export function BookCoverExperience({
   useEffect(() => {
     const hasSeen = sessionStorage.getItem("hasSeenBookCover");
     if (hasSeen) {
-      setIsVisible(false);
+      // Deferred a tick so this setState call doesn't execute synchronously
+      // within the effect body -- same constraint worked around elsewhere
+      // in this codebase.
+      Promise.resolve().then(() => setIsVisible(false));
       return;
     }
     sessionStorage.setItem("hasSeenBookCover", "true");

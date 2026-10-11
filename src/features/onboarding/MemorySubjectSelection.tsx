@@ -47,6 +47,12 @@ export default function MemorySubjectSelection() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Dates are real-world facts, not arbitrary picker values: a birth date
+  // can't be in the future, and a date of passing can't come before the
+  // birth date or after today. Computed once per render at day granularity,
+  // which is all a date-only field needs.
+  const today = new Date().toISOString().slice(0, 10);
+
   const handleSelect = (id: string): void => {
     setSelectedOption(id);
     setStep("details");
@@ -64,9 +70,23 @@ export default function MemorySubjectSelection() {
       setErrorMessage("Please select their date of birth.");
       return;
     }
+    if (dob > today) {
+      setErrorMessage("Date of birth can't be in the future.");
+      return;
+    }
     if (!isAlive && !dod.trim()) {
       setErrorMessage('Please select their date of passing, or check "Still with us".');
       return;
+    }
+    if (!isAlive && dod.trim()) {
+      if (dod > today) {
+        setErrorMessage("Date of passing can't be in the future.");
+        return;
+      }
+      if (dod < dob) {
+        setErrorMessage("Date of passing can't be before their date of birth.");
+        return;
+      }
     }
 
     // Package the onboarding details into localStorage for memoir creation post-signup
@@ -182,6 +202,7 @@ export default function MemorySubjectSelection() {
                     id="subject-dob"
                     type="date"
                     value={dob}
+                    max={today}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setDob(e.target.value);
                       if (errorMessage) setErrorMessage(null);
@@ -213,6 +234,8 @@ export default function MemorySubjectSelection() {
                     id="subject-dod"
                     type="date"
                     value={dod}
+                    min={dob || undefined}
+                    max={today}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => {
                       setDod(e.target.value);
                       if (errorMessage) setErrorMessage(null);
