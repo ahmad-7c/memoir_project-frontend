@@ -4,11 +4,11 @@ export default function Logo() {
   return (
     <Image
       src="/logo.jpeg"
-      alt="Memoir Logo"
+      alt="Memoir"
       width={150}
-      height={25}
+      height={150}
       priority
-      className="h-22 w-auto object-contain"
+      className="h-10 w-10 object-cover rounded-full"
     />
   );
 }

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import { api, OwnerMemoirSummary, OwnerProfile } from "@/lib/api/client";
 import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
 import { LoadingState, EmptyState, ErrorState } from "@/components/ui/ScreenStates";
 
 function formatDates(m: OwnerMemoirSummary): string {
@@ -74,13 +74,13 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-memory-bg dark:bg-memory-bg text-stone-900 dark:text-memory-ink font-sans px-6 md:px-12 py-12">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-canvas px-6 md:px-12 py-12">
+      <div className="max-w-2xl mx-auto">
         <div className="mb-10">
           <button
             type="button"
             onClick={() => router.push("/dashboard")}
-            className="text-memory-muted hover:text-memory-primary dark:hover:text-memory-ink text-[13px] font-medium transition cursor-pointer"
+            className="text-ink-muted hover:text-ink-secondary text-body-ui transition-colors cursor-pointer"
           >
             ← Back
           </button>
@@ -95,67 +95,53 @@ export default function ProfilePage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="bg-memory-card dark:bg-memory-card border border-memory-border rounded-3xl px-8 py-8 mb-10 shadow-sm"
+              transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
+              className="mb-12"
             >
-              <h1 className="font-serif text-3xl text-memory-primary dark:text-memory-ink mb-1">{profile.name}</h1>
-              <p className="text-memory-muted text-[15px] mb-4">{profile.email}</p>
-              <Badge variant={profile.subscription_status === "free" ? "neutral" : "primary"}>
+              <h1 className="font-serif text-heading text-ink mb-1">{profile.name}</h1>
+              <p className="text-body-ui text-ink-secondary mb-4">{profile.email}</p>
+              <Badge variant={profile.subscription_status === "free" ? "neutral" : "calm"}>
                 {profile.subscription_status}
               </Badge>
             </motion.div>
 
-            <h2 className="font-serif text-xl text-memory-primary dark:text-memory-ink mb-4">Your Memoirs</h2>
+            <h2 className="font-serif text-subhead text-ink mb-6">Your memoirs</h2>
 
             {profile.memoirs.length === 0 ? (
-              <EmptyState
-                title="No memoirs yet"
-                description="Once you create one, it will appear here."
-              />
+              <EmptyState title="No memoirs yet" description="Once you create one, it will appear here." />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              /* Ordering is the backend's, deliberately: drafts first
+                 (newest-edit-first, since they need attention), then
+                 published (newest-publish-first). Not re-sorted here. */
+              <div className="flex flex-col gap-5">
                 {profile.memoirs.map((memoir) => (
-                  <motion.button
-                    key={memoir.id}
-                    type="button"
-                    onClick={() => openMemoir(memoir)}
-                    whileHover={{ y: -2 }}
-                    className="text-left bg-memory-card dark:bg-memory-card border border-memory-border rounded-2xl p-5 shadow-sm hover:shadow-md transition-all cursor-pointer flex gap-4"
-                  >
-                    <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-stone-200 dark:bg-memory-border border border-stone-200 dark:border-memory-border">
-                      {memoir.cover_image_url ? (
-                        <Image
-                          src={memoir.cover_image_url}
-                          alt={memoir.subject_name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center font-serif text-2xl text-stone-400">
-                          {memoir.subject_name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h3 className="font-serif text-lg text-stone-900 dark:text-memory-ink truncate">
-                          {memoir.subject_name}
-                        </h3>
-                        {memoir.status === "published" ? (
-                          <Badge variant="primary">Published</Badge>
+                  <button key={memoir.id} type="button" onClick={() => openMemoir(memoir)} className="text-left w-full cursor-pointer">
+                    <Card className="flex flex-col sm:flex-row hover:border-accent transition-colors">
+                      <div className="sm:w-56 shrink-0">
+                        {memoir.cover_image_url ? (
+                          <Card.Media src={memoir.cover_image_url} alt={memoir.subject_name} />
                         ) : (
-                          <Badge variant="neutral">Draft</Badge>
+                          <div className="w-full aspect-3/2 bg-surface-sunk flex items-center justify-center">
+                            <span className="font-serif text-heading text-ink-muted">
+                              {memoir.subject_name.charAt(0)}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <p className="text-[12px] text-stone-500 mb-2">{formatDates(memoir)}</p>
-                      <p className="text-[11px] text-stone-400 uppercase tracking-wide">
-                        {memoir.memory_count} {memoir.memory_count === 1 ? "memory" : "memories"} ·
-                        Updated {formatUpdated(memoir.updated_at)}
-                      </p>
-                    </div>
-                  </motion.button>
+
+                      <div className="flex-1 min-w-0 p-6 flex flex-col justify-center">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <h3 className="font-serif text-display text-ink truncate">{memoir.subject_name}</h3>
+                          {memoir.status === "published" && <Badge variant="calm">Published</Badge>}
+                        </div>
+                        <p className="text-small text-ink-muted mb-2">{formatDates(memoir)}</p>
+                        <p className="text-small text-ink-muted">
+                          {memoir.memory_count} {memoir.memory_count === 1 ? "memory" : "memories"} · updated{" "}
+                          {formatUpdated(memoir.updated_at)}
+                        </p>
+                      </div>
+                    </Card>
+                  </button>
                 ))}
               </div>
             )}

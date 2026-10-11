@@ -1,57 +1,86 @@
-"use client";
-
 import { ButtonHTMLAttributes, forwardRef } from "react";
-import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-// framer-motion's motion.button redefines a handful of native event handlers
-// (onAnimationStart/End, onDrag*) with its own gesture-aware signatures, so
-// extending the full native attribute set and spreading it onto motion.button
-// conflicts on exactly those. Omitted here rather than typed around per-call.
-type NativeButtonProps = Omit<
-  ButtonHTMLAttributes<HTMLButtonElement>,
-  "onAnimationStart" | "onAnimationEnd" | "onDrag" | "onDragStart" | "onDragEnd"
->;
-
-interface ButtonProps extends NativeButtonProps {
+interface SharedProps {
   variant?: "primary" | "secondary" | "ghost";
   size?: "md" | "lg";
   loading?: boolean;
 }
 
+interface ButtonAsButton extends SharedProps, ButtonHTMLAttributes<HTMLButtonElement> {
+  href?: undefined;
+}
+
+interface ButtonAsLink extends SharedProps {
+  href: string;
+  className?: string;
+  children?: React.ReactNode;
+}
+
+type ButtonProps = ButtonAsButton | ButtonAsLink;
+
 /**
- * The one button shape used across the redesigned screens. Motion is a
- * subtle lift, never a bounce or pop -- per the product's tone, nothing
- * here should feel energetic.
+ * The one button shape used across the app. There is one primary (filled)
+ * button per screen by design -- `variant="primary"` should appear once.
+ * Everything else is `secondary` (hairline outline) or `ghost` (text only).
+ *
+ * Primary text is bold at >=19px specifically because that is load-bearing
+ * for accessibility, not a stylistic choice: --accent is a mid-luminance
+ * clay, so no text color clears normal-text AA contrast against it -- only
+ * the large-text (>=18.66px bold) 3:1 threshold, which --on-accent clears
+ * at ~3.6:1 in light mode and ~6:1 in dark mode. Shrinking this text below
+ * 19px bold would make the primary button fail contrast. See globals.css.
+ *
+ * Pass `href` to render a navigation link styled identically -- this exists
+ * so a "button" that navigates never ends up as a <button> nested inside a
+ * <Link>'s <a>, which is invalid HTML (interactive content inside
+ * interactive content) and confusing to screen readers.
  */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "primary", size = "md", loading = false, disabled, className = "", children, ...props },
+function classes(variant: SharedProps["variant"] = "primary", size: SharedProps["size"] = "md") {
+  const base =
+    "inline-flex items-center justify-center gap-2 rounded-sm font-sans transition-[color,background-color,border-color,transform] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 min-h-11 hover:-translate-y-px active:translate-y-0";
+  const sizes = {
+    primary: size === "lg" ? "px-8 py-4" : "px-6 py-3",
+    secondary: size === "lg" ? "px-7 py-4 text-body-ui" : "px-5 py-2.5 text-body-ui",
+    ghost: "px-3 py-2.5 text-body-ui",
+  }[variant];
+  const variants = {
+    primary: "bg-accent text-on-accent hover:bg-accent-hover font-bold text-[1.1875rem] leading-none",
+    secondary: "bg-transparent border border-line text-ink hover:bg-surface-sunk font-medium",
+    ghost: "bg-transparent text-ink-secondary hover:text-ink font-medium",
+  }[variant];
+  return cn(base, sizes, variants);
+}
+
+export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonProps>(function Button(
+  props,
   ref,
 ) {
-  const base =
-    "inline-flex items-center justify-center gap-2 rounded-xl font-sans font-semibold transition-colors duration-200 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 min-h-11";
-  const sizes = size === "lg" ? "px-7 py-4 text-[15px]" : "px-5 py-2.5 text-sm";
-  const variants = {
-    primary:
-      "bg-memory-primary text-memory-light hover:bg-memory-maroon dark:bg-memory-gold dark:text-memory-dark-end dark:hover:bg-memory-accent shadow-sm",
-    secondary:
-      "bg-transparent border border-memory-border dark:border-memory-border text-memory-primary dark:text-memory-ink hover:bg-memory-card dark:hover:bg-memory-card",
-    ghost: "bg-transparent text-memory-muted hover:text-memory-primary dark:hover:text-memory-ink",
-  }[variant];
+  const { variant = "primary", size = "md", className = "" } = props;
 
+  if ("href" in props && props.href !== undefined) {
+    const { href, children } = props;
+    return (
+      <Link
+        ref={ref as React.Ref<HTMLAnchorElement>}
+        href={href}
+        className={cn(classes(variant, size), className)}
+      >
+        {children}
+      </Link>
+    );
+  }
+
+  const { loading = false, disabled, children, ...rest } = props as ButtonAsButton;
   return (
-    <motion.button
-      ref={ref}
-      whileHover={disabled || loading ? {} : { y: -1 }}
-      whileTap={disabled || loading ? {} : { y: 0 }}
-      transition={{ duration: 0.2 }}
+    <button
+      ref={ref as React.Ref<HTMLButtonElement>}
       disabled={disabled || loading}
-      className={cn(base, sizes, variants, className)}
-      {...props}
+      className={cn(classes(variant, size), className)}
+      {...rest}
     >
-      {loading && <Loader2 size={16} className="animate-spin" />}
       {children}
-    </motion.button>
+    </button>
   );
 });

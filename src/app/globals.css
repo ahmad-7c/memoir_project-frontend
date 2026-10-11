@@ -1,84 +1,190 @@
-/* The stylesheet used containing tailwind and css rules applied accross application */
 @import "tailwindcss";
 
 /*
- * Dark mode variant: matches BOTH system preference (prefers-color-scheme)
- * and an explicit .dark class on <html> (set by ThemeToggle + the anti-flash
- * script in layout.tsx), so `dark:` utilities work whether the user has never
- * touched the toggle or has explicitly overridden it.
+ * Theme system for Memoir. Two fully-designed modes ("Morning" / "Evening"),
+ * not one palette inverted. Every neutral below carries a tint on purpose --
+ * no pure #000/#FFF anywhere, including this file.
+ *
+ * Dark mode is resolved two ways, deliberately: a `prefers-color-scheme`
+ * block covers a user who has never touched the toggle (and the brief
+ * instant before the anti-flash script in layout.tsx runs); the
+ * `[data-theme="dark"]` block covers an explicit choice, which must win over
+ * the OS setting either direction. The anti-flash script always writes one
+ * or the other to <html> before paint, so in practice the attribute block is
+ * what applies almost immediately -- the media block is the no-JS fallback.
  */
-@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-
-  /* Shared Theme Tokens for your custom color palette */
-  --memory-bg: #faf8f5;
-  --memory-primary: #381c24;
-  --memory-accent: #c9a063;
-  --memory-border: #f0e4d3;
-  --memory-muted: #78716c;
-  --memory-maroon: #4a222a;
-  --memory-card: #fdf8ed;
-  --memory-light: #fefaf1;
-  --memory-dark-end: #12070b;
-
-  /* Semantic form token */
-  --memory-required: #dc2626;
+  /* ---- Morning (light) ---- */
+  --canvas: #eef1ef;
+  --surface: #f6f8f6;
+  --surface-sunk: #e5e9e7;
+  --ink: #283330;
+  --ink-secondary: #5e6b66;
+  --ink-muted: #8a9793;
+  --line: #d6dcd9;
+  --accent: #c4705a;
+  --accent-hover: #d4886f;
+  --accent-soft: #e8cfc7;
+  --calm: #7e9b93;
+  --alert: #a85d4e;
 
   /*
-   * Dark-mode-safe surface/text tokens, ADDITIVE to the palette above -- the
-   * existing memory-primary/accent/maroon/light tokens are left unchanged
-   * globally (they're used as both text-on-light-bg AND solid button fills
-   * throughout the app; flipping them wholesale would fix contrast in one
-   * role and break it in the other on every screen this pass doesn't touch).
-   * These new tokens exist for screens being actively redesigned to opt into
-   * dark mode via explicit `dark:` utilities, without touching untouched
-   * screens' existing light-mode-only markup.
+   * Text color for anything sitting ON TOP of an accent fill (primary
+   * buttons). Verified by computing actual WCAG contrast rather than
+   * assuming -- --accent is a mid-luminance clay, so NEITHER a light nor a
+   * dark text color clears normal-text AA against it (best case is ~3.6:1
+   * in light mode), only the large-text 3:1 threshold. Button labels on an
+   * accent fill are therefore set bold at >=19px everywhere (see Button.tsx)
+   * so this is a real AA pass, not a fudge. --accent-hover was also
+   * re-derived LIGHTER rather than darker in light mode for the same
+   * reason: darkening it toward this dark text color destroys contrast
+   * instead of improving it.
    */
-  --memory-ink: #e9e2d8;       /* warm off-white heading/body text on a dark surface */
-  --memory-gold: #d9b876;      /* lifted candlelight-gold accent, legible on dark */
+  --on-accent: #283330;
+
+  /* Motion -- slow and resolved, never bouncy. */
+  --duration: 240ms;
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
-:root.dark {
-  --memory-bg: #17120f;
-  --memory-card: #221b17;
-  --memory-border: #3a2e27;
-  --memory-muted: #a89a8c;
-  --background: #17120f;
-  --foreground: #e9e2d8;
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --canvas: #1a2228;
+    --surface: #222c33;
+    --surface-sunk: #151c21;
+    --ink: #e2e6e3;
+    --ink-secondary: #a3b0ac;
+    --ink-muted: #76847f;
+    --line: #313c43;
+    --accent: #d98c72;
+    --accent-hover: #e4a188;
+    --accent-soft: #3a2e2a;
+    --calm: #8fb0a6;
+    --alert: #c47b6a;
+    --on-accent: #1a2228;
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #1a2228;
+  --surface: #222c33;
+  --surface-sunk: #151c21;
+  --ink: #e2e6e3;
+  --ink-secondary: #a3b0ac;
+  --ink-muted: #76847f;
+  --line: #313c43;
+  --accent: #d98c72;
+  --accent-hover: #e4a188;
+  --accent-soft: #3a2e2a;
+  --calm: #8fb0a6;
+  --alert: #c47b6a;
+  --on-accent: #1a2228;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-
-  --font-sans: var(--font-inter), sans-serif;
-  --font-serif: var(--font-playfair), serif;
+  /* Fonts: Fraunces carries anything a person (or the AI, on their behalf)
+     wrote; Instrument Sans carries anything the interface says about
+     itself. Caveat is kept only for the one literally-handwritten note on
+     the landing page -- it is not part of the two-family system. */
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --font-caveat: var(--font-caveat), cursive;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Registering the shared color tokens for Tailwind utility classes */
-  --color-memory-bg: var(--memory-bg);
-  --color-memory-primary: var(--memory-primary);
-  --color-memory-accent: var(--memory-accent);
-  --color-memory-border: var(--memory-border);
-  --color-memory-muted: var(--memory-muted);
-  --color-memory-maroon: var(--memory-maroon);
-  --color-memory-card: var(--memory-card);
-  --color-memory-light: var(--memory-light);
-  --color-memory-dark-end: var(--memory-dark-end);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-sunk: var(--surface-sunk);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-calm: var(--calm);
+  --color-alert: var(--alert);
+  --color-on-accent: var(--on-accent);
 
-  /* Semantic form token */
-  --color-memory-required: var(--memory-required);
+  /* Corner radius: 4px on controls, 8px max on panels. Nothing rounder. */
+  --radius-sm: 4px;
+  --radius-md: 8px;
 
-  --color-memory-ink: var(--memory-ink);
-  --color-memory-gold: var(--memory-gold);
+  --default-transition-duration: var(--duration);
+  --default-transition-timing-function: var(--ease);
+
+  /* Named type scale (Display / Heading / Subhead / Body-read / Body-ui /
+     Small / Micro) rather than Tailwind's generic sizes -- so a component
+     reads `text-display` or `text-body-read`, naming its role in the
+     content/chrome split rather than a pixel value. */
+  --text-display: clamp(2.125rem, 1.65rem + 2.4vw, 4rem);
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-heading: clamp(1.75rem, 1.55rem + 0.6vw, 2.125rem);
+  --text-heading--line-height: 1.25;
+
+  --text-subhead: clamp(1.25rem, 1.15rem + 0.3vw, 1.375rem);
+  --text-subhead--line-height: 1.4;
+
+  --text-body-read: clamp(1.0625rem, 1rem + 0.15vw, 1.1875rem);
+  --text-body-read--line-height: 1.65;
+
+  --text-body-ui: 0.9375rem;
+  --text-body-ui--line-height: 1.5;
+
+  --text-small: 0.8125rem;
+  --text-small--line-height: 1.45;
+
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1.4;
+  --text-micro--letter-spacing: 0.06em;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-canvas);
+  color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: var(--text-body-ui);
+  line-height: var(--text-body-ui--line-height);
+}
+
+/*
+ * A single, very faint paper grain over the canvas -- subliminal by design.
+ * Fixed and non-interactive; it sits over the whole viewport rather than
+ * being re-applied per-section, which is what keeps it consistent and cheap.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+}
+
+:root[data-theme="dark"] body::before {
+  opacity: 0.035;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body::before {
+    opacity: 0.035;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-calm);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

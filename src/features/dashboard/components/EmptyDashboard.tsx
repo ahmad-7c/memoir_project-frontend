@@ -39,26 +39,22 @@ export function EmptyDashboard(props: EmptyDashboardProps) {
   const { name, dates, ...inputProps } = props;
 
   return (
-    <div className="min-h-screen bg-memory-bg dark:bg-memory-bg flex flex-col items-center px-6 pt-24 pb-20">
+    <div className="min-h-screen bg-canvas flex flex-col items-center px-6 pt-24 pb-20">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
         className="text-center mb-14"
       >
-        <h1 className="font-serif text-4xl md:text-5xl text-memory-primary dark:text-memory-ink mb-2">
-          {name || "Their Memoir"}
-        </h1>
-        {dates && (
-          <p className="text-xs uppercase tracking-[0.2em] text-memory-muted font-sans">{dates}</p>
-        )}
+        <h1 className="font-serif text-display text-ink mb-2">{name || "Their memoir"}</h1>
+        {dates && <p className="text-small text-ink-muted">{dates}</p>}
       </motion.div>
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
-        className="font-serif italic text-lg text-memory-muted text-center max-w-md mb-10"
+        transition={{ duration: 0.24, delay: 0.1 }}
+        className="font-serif text-body-read text-ink-secondary text-center max-w-md mb-10"
       >
         Nothing is here yet. Add the first memory, in whatever way feels
         easiest right now.

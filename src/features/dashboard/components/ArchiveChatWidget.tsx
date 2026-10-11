@@ -32,29 +32,26 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
     setChatQuery("");
 
     const currentHistoryForApi = [...chatHistory];
-    setChatHistory(prev => [...prev, { role: 'user', text: userText }]);
+    setChatHistory((prev) => [...prev, { role: "user", text: userText }]);
 
     try {
-      const backendHistory = currentHistoryForApi.map(msg => ({
-        role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
-        content: msg.text
+      const backendHistory = currentHistoryForApi.map((msg) => ({
+        role: msg.role === "user" ? ("user" as const) : ("assistant" as const),
+        content: msg.text,
       }));
 
-      // Response is validated by a Zod schema at the API boundary, so `reply`
-      // and `proposed_actions` are guaranteed present here rather than being
-      // probed for across four possible field names.
       const res = await api.askArchive(memoirId, userText, backendHistory);
-      setChatHistory(prev => [
+      setChatHistory((prev) => [
         ...prev,
         {
-          role: 'assistant',
-          text: res.reply || "I have analyzed your archive records.",
+          role: "assistant",
+          text: res.reply || "I have looked through the archive.",
           proposedActions: res.proposed_actions,
         },
       ]);
     } catch (e) {
       console.error("Chat error:", e);
-      setChatHistory(prev => [...prev, { role: 'assistant', text: "Sorry, I encountered an error querying your archive." }]);
+      setChatHistory((prev) => [...prev, { role: "assistant", text: "That search didn't go through. Please try again." }]);
     }
   };
 
@@ -63,31 +60,36 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
       <AnimatePresence>
         {isChatOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="mb-4 w-80 md:w-96 bg-white border border-stone-300 shadow-2xl rounded-2xl overflow-hidden flex flex-col"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
+            className="mb-4 w-80 md:w-96 bg-surface border border-line rounded-md overflow-hidden flex flex-col"
             style={{ height: "450px" }}
           >
-            <div className="bg-[#FAF7F2] border-b border-stone-200 p-4 flex justify-between items-center">
+            <div className="border-b border-line p-4 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <MessageSquare size={16} className="text-memory-primary" />
-                <span className="font-sans font-bold text-stone-800 text-sm tracking-wide">Ask the Archive</span>
+                <MessageSquare size={14} className="text-ink-secondary" />
+                <span className="text-body-ui font-semibold text-ink">Ask the archive</span>
               </div>
-              <button onClick={() => setIsChatOpen(false)} className="text-stone-400 hover:text-stone-800 cursor-pointer p-1">
+              <button onClick={() => setIsChatOpen(false)} className="text-ink-muted hover:text-ink cursor-pointer p-1">
                 <X size={16} />
               </button>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 bg-stone-50 space-y-4">
+
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
               {chatHistory.length === 0 ? (
-                <div className="text-center text-stone-500 text-xs mt-10 px-4">
-                  Search for specific memories, names, or patterns hidden within your timeline.
-                </div>
+                <p className="text-center text-small text-ink-muted mt-10 px-4">
+                  Search for specific memories, names, or patterns in the timeline.
+                </p>
               ) : (
                 chatHistory.map((msg, i) => (
-                  <div key={i} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`p-3 rounded-xl max-w-[85%] text-[13px] font-sans ${msg.role === 'user' ? 'bg-memory-primary text-white rounded-tr-sm' : 'bg-white border border-stone-200 text-stone-800 rounded-tl-sm shadow-sm'}`}>
+                  <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                    <div
+                      className={`px-3.5 py-2.5 rounded-sm max-w-[85%] text-small ${
+                        msg.role === "user" ? "bg-surface-sunk text-ink" : "border border-line text-ink-secondary"
+                      }`}
+                    >
                       {msg.text}
                     </div>
 
@@ -95,25 +97,18 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
                         change requires the proposal review flow, which is where
                         the owner sees what would change and confirms it. */}
                     {msg.proposedActions && msg.proposedActions.length > 0 && (
-                      <div className="max-w-[85%] mt-1.5 space-y-1.5">
+                      <div className="max-w-[85%] mt-1.5 flex flex-col gap-1.5">
                         {msg.proposedActions.map((action, j) => (
-                          <div
-                            key={j}
-                            className="flex items-start gap-1.5 text-[11px] text-stone-500 bg-white/70 border border-stone-200 rounded-lg px-2.5 py-1.5"
-                          >
-                            <Sparkles size={11} className="text-memory-primary shrink-0 mt-0.5" />
+                          <div key={j} className="flex items-start gap-1.5 text-micro text-ink-muted border border-line rounded-sm px-2.5 py-1.5">
+                            <Sparkles size={11} className="text-ink-secondary shrink-0 mt-0.5" />
                             <span>
-                              <span className="font-semibold text-stone-700">
-                                {action.action_type.replace(/_/g, " ")}
-                              </span>
+                              <span className="font-semibold text-ink-secondary">{action.action_type.replace(/_/g, " ")}</span>
                               {action.rationale ? ` — ${action.rationale}` : ""}
                             </span>
                           </div>
                         ))}
-                        <p className="text-[10px] text-stone-400 px-1">
-                          Suggestions only — nothing has been changed. Use
-                          &ldquo;Organize Timeline&rdquo; to review and apply
-                          chapter changes.
+                        <p className="text-micro text-ink-muted px-1">
+                          Suggestions only — nothing has changed. Use &ldquo;Organize into chapters&rdquo; to review and apply.
                         </p>
                       </div>
                     )}
@@ -122,30 +117,29 @@ export function ArchiveChatWidget({ memoirId }: ArchiveChatWidgetProps) {
               )}
             </div>
 
-            <div className="p-3 bg-white border-t border-stone-200">
-              <input 
+            <div className="p-3 border-t border-line">
+              <input
                 type="text"
                 value={chatQuery}
                 onChange={(e) => setChatQuery(e.target.value)}
                 onKeyDown={(e) => {
-                  if(e.key === 'Enter') handleSendChat();
+                  if (e.key === "Enter") handleSendChat();
                 }}
-                placeholder="Search your memories..."
-                className="w-full bg-[#FAF7F2] border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-memory-primary text-stone-800 placeholder:text-stone-400"
+                placeholder="Search your memories…"
+                className="w-full bg-surface-sunk border border-line rounded-sm px-3 py-2.5 text-body-ui outline-none focus:border-accent text-ink placeholder:text-ink-muted transition-colors"
               />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <motion.button
+      <button
         onClick={() => setIsChatOpen(!isChatOpen)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        className="w-14 h-14 bg-memory-primary text-white rounded-full shadow-xl flex items-center justify-center cursor-pointer border-2 border-white/20 hover:bg-[#5a222a] transition-colors"
+        aria-label={isChatOpen ? "Close archive search" : "Ask the archive"}
+        className="w-14 h-14 bg-surface border border-line rounded-md flex items-center justify-center cursor-pointer text-ink-secondary hover:text-ink hover:bg-surface-sunk transition-colors"
       >
-        {isChatOpen ? <X size={24} /> : <MessageSquare size={24} />}
-      </motion.button>
+        {isChatOpen ? <X size={20} /> : <MessageSquare size={20} />}
+      </button>
     </div>
   );
 }

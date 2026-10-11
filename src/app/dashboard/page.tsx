@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/lib/api/client";
+import { LoadingState, ErrorState } from "@/components/ui/ScreenStates";
 
 // Modular Imports
 import { contributorNames } from "@/features/dashboard/data/mockData"; 
@@ -370,7 +371,7 @@ const [ownerName] = useState<string>(() => {
 
   return (
     <BookCoverExperience userName={ownerName || "Author"}>
-      <div className="min-h-screen bg-memory-bg text-stone-900 font-sans selection:bg-memory-primary/20 flex overflow-x-hidden relative">
+      <div className="min-h-screen bg-canvas text-ink font-sans flex overflow-x-hidden relative">
 
         <style dangerouslySetInnerHTML={{ __html: `
           .book-text { hyphens: auto; -webkit-hyphens: auto; -ms-hyphens: auto; }
@@ -380,10 +381,10 @@ const [ownerName] = useState<string>(() => {
 
         <AnimatePresence>
           {activeInput !== "none" && (
-            <motion.div 
+            <motion.div
               key="focus-backdrop"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}
-              className="fixed inset-0 bg-memory-bg/92 backdrop-blur-md z-40 pointer-events-auto"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.24 }}
+              className="fixed inset-0 bg-canvas/92 backdrop-blur-md z-40 pointer-events-auto"
             />
           )}
         </AnimatePresence>
@@ -401,8 +402,17 @@ const [ownerName] = useState<string>(() => {
           />
 
           <div className="max-w-3xl mx-auto w-full px-6 pt-10">
-            {error && <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">{error}</div>}
-            {successMsg && <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-medium">{successMsg}</div>}
+            {error && (
+              <div role="alert" className="mb-6 flex items-start gap-3 rounded-md border border-line bg-surface px-5 py-4">
+                <span className="w-1.5 h-1.5 rounded-full bg-alert shrink-0 mt-2" aria-hidden="true" />
+                <p className="text-body-ui text-ink">{error}</p>
+              </div>
+            )}
+            {successMsg && (
+              <div role="status" className="mb-6 rounded-md border border-line bg-surface px-5 py-4">
+                <p className="text-body-ui text-ink-secondary">{successMsg}</p>
+              </div>
+            )}
 
             <MemoryInputSection 
               activeInput={activeInput} setActiveInput={setActiveInput}
@@ -418,9 +428,9 @@ const [ownerName] = useState<string>(() => {
             />
 
             {feedLoading && !memories.length ? (
-              <div className="py-24 text-center text-memory-muted text-sm tracking-widest uppercase animate-pulse">Unpacking Archive...</div>
+              <LoadingState label="Still gathering the archive…" />
             ) : feedError ? (
-              <div className="py-24 text-center text-red-600 text-sm font-medium">Failed to load archive: {feedError}</div>
+              <ErrorState message={`The archive didn't load. ${feedError}`} onRetry={refreshFeed} />
             ) : (
               <MemoryArchive 
                 expandedStacks={expandedStacks} toggleStack={toggleStack} 

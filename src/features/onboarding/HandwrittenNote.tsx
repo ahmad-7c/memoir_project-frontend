@@ -1,48 +1,38 @@
 /**
  * @file HandwrittenNote.tsx
- * @description Component rendering a handwritten style note card for user Hafsa.
- * Elevated to a premium, blank stationery look to distinguish it from the drafting phase.
+ * @description Step 2 of 5. A literally handwritten note -- Caveat is used
+ * here deliberately, the one exception to the Fraunces/Instrument Sans
+ * system, because this card is meant to read as handwriting, not content.
  */
 
 "use client";
 
-import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { OnboardingProgress } from "./OnboardingProgress";
 
 export default function HandwrittenNote() {
   return (
-    <section className="min-h-screen bg-memory-bg text-memory-primary flex flex-col items-center justify-center px-6 py-16 relative z-10 font-sans selection:bg-memory-primary selection:text-white">
-      {/* Keepsake Note Card (Elevated from torn paper to premium stationery) */}
-      <div className="relative w-full max-w-90 bg-white border border-memory-border/50 shadow-2xl shadow-memory-primary/10 -rotate-1 transition-transform hover:rotate-0 duration-500 p-10 sm:p-12 rounded-3xl">
-        <div className="relative z-10 flex flex-col items-center text-center">
-          {/* Using the global font-caveat utility class */}
-          {/* Using the global font-caveat utility class */}
-          <h2 className="font-caveat text-[40px] font-bold text-memory-primary mb-4">
-            A gentle beginning,
-          </h2>
-          <p className="font-caveat text-[28px] text-memory-primary leading-10">
-            Every family has a story worth keeping, the quiet mornings, the
+    <section className="min-h-screen bg-canvas flex flex-col items-center justify-center px-6 py-16">
+      <OnboardingProgress step={2} />
+
+      <div className="relative w-full max-w-100 bg-surface border border-line rounded-md p-10 sm:p-12">
+        <div className="flex flex-col items-center text-center">
+          <h2 className="font-caveat text-[40px] leading-tight text-ink mb-4">A gentle beginning,</h2>
+          <p className="font-caveat text-[26px] text-ink-secondary leading-9">
+            Every family has a story worth keeping -- the quiet mornings, the
             faded photographs, and the voices you never want to lose. We built
-            this space to hold those precious pieces safe for you and the ones
-            you love.
+            this space to hold those pieces safe for you and the ones you love.
           </p>
         </div>
       </div>
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center gap-4 mt-6 w-full max-w-85">
-        <Link
-          href="/memory-subject-selection"
-          className="flex-1 text-center bg-white border border-memory-border text-memory-primary text-[16px] font-semibold py-4 rounded-2xl hover:border-memory-accent transition shadow-sm"
-        >
+      <div className="flex items-center gap-4 mt-8 w-full max-w-95">
+        <Button href="/memory-subject-selection" variant="secondary" className="flex-1">
           Back
-        </Link>
-
-        <Link
-          href="/unfold-memory"
-          className="flex-1 text-center bg-memory-primary text-white text-[16px] font-semibold py-4 rounded-2xl hover:bg-memory-maroon transition shadow-md"
-        >
+        </Button>
+        <Button href="/unfold-memory" className="flex-1">
           Continue
-        </Link>
+        </Button>
       </div>
     </section>
   );

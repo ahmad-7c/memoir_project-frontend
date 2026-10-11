@@ -1,87 +1,39 @@
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
-import { mockHeroPhotos } from "./mockData";
+import React from "react";
 
 interface MemoirHeroProps {
-  onOpenGallery: () => void;
+  subjectName: string;
+  dates: string;
+  coverImageUrl?: string | null;
 }
 
-export default function MemoirHero({ onOpenGallery }: MemoirHeroProps) {
-  const [heroPhotoIndex, setHeroPhotoIndex] = useState(0);
-  const [isCarouselHovered, setIsCarouselHovered] = useState(false);
-  const [carouselFinished, setCarouselFinished] = useState(false);
-
-  useEffect(() => {
-    if (carouselFinished || isCarouselHovered || mockHeroPhotos.length === 0) return;
-    const timer = setInterval(() => {
-      setHeroPhotoIndex(prev => {
-        if (prev + 1 >= mockHeroPhotos.length) {
-          setCarouselFinished(true);
-          return prev;
-        }
-        return prev + 1;
-      });
-    }, 2000); 
-    return () => clearInterval(timer);
-  }, [carouselFinished, isCarouselHovered]);
-
+/**
+ * The destination's opening: full-width portrait fading into canvas, name
+ * in Display. Previously this rendered a hardcoded "Nadia's Story" with a
+ * stock-photo carousel (Unsplash URLs, fabricated captions) regardless of
+ * which memoir was actually open -- every real family saw the same fake
+ * story. Replaced with the real subject name and the real cover image this
+ * memoir actually has (same field ProfilePage already uses); there is no
+ * backend field for a photo gallery, so no gallery is shown rather than
+ * inventing one.
+ */
+export default function MemoirHero({ subjectName, dates, coverImageUrl }: MemoirHeroProps) {
   return (
-    <section className="pt-36 pb-8 px-6 md:px-12 max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-      <div className="flex-1 text-left w-full md:max-w-lg">
-        <h2 className="text-5xl md:text-6xl font-serif italic text-memory-maroon font-normal tracking-tight">
-          Nadia&apos;s Story
-        </h2>
-        <p className="mt-5 text-xl md:text-2xl font-serif italic text-stone-700 leading-relaxed">
-          She gave everyone a second chance and made the world warmer.
-        </p>
-        <div className="flex items-center gap-4 mt-6">
-          <div className="h-px w-8 bg-stone-300"></div>
-          <p className="text-sm font-serif uppercase tracking-[0.2em] text-stone-500">
-            1947 &nbsp;—&nbsp; 2024
-          </p>
+    <section>
+      {coverImageUrl && (
+        <div className="relative w-full h-[50vh] md:h-[60vh]">
+          {/* eslint-disable-next-line @next/next/no-img-element -- signed, short-lived Supabase URL */}
+          <img src={coverImageUrl} alt={subjectName} className="w-full h-full object-cover" />
+          <div
+            className="absolute inset-x-0 bottom-0 h-40"
+            style={{ background: "linear-gradient(to bottom, transparent, var(--canvas))" }}
+            aria-hidden="true"
+          />
         </div>
-      </div>
+      )}
 
-      <div 
-        className="w-full md:w-80 h-72 md:h-[340px] relative flex items-center justify-center shrink-0"
-        onMouseEnter={() => setIsCarouselHovered(true)}
-        onMouseLeave={() => setIsCarouselHovered(false)}
-      >
-        {!carouselFinished && (
-          <div className="relative w-full h-full flex items-center justify-center">
-            {mockHeroPhotos.map((photo, idx) => (
-              <div 
-                key={photo.id}
-                className={`absolute transition-opacity duration-500 ease-in-out ${idx === heroPhotoIndex ? 'opacity-100 z-20' : 'opacity-0 z-10'}`}
-              >
-                <figure className="w-56 md:w-72 bg-white p-2.5 shadow-xl border border-stone-200">
-                  <div className="relative w-full aspect-[4/3] bg-stone-100 overflow-hidden">
-                    <Image src={photo.url} alt={photo.caption || "Archive photo"} fill className="object-cover" />
-                  </div>
-                  {photo.caption && (
-                    <figcaption className="pt-3 pb-1 text-[11px] md:text-[12px] font-serif italic text-stone-600 text-center leading-tight line-clamp-1">
-                      {photo.caption}
-                    </figcaption>
-                  )}
-                </figure>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {(carouselFinished || mockHeroPhotos.length === 0) && (
-          <button 
-            onClick={onOpenGallery}
-            className="w-56 md:w-72 h-48 md:h-56 bg-white border border-stone-200 shadow-xl flex flex-col items-center justify-center gap-4 transition-colors duration-300 group cursor-pointer"
-          >
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#FAF9F6] border border-stone-200 flex items-center justify-center group-hover:bg-memory-maroon group-hover:text-white transition-colors text-stone-400">
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            </div>
-            <span className="font-serif uppercase tracking-[0.2em] text-[11px] md:text-[12px] font-bold text-stone-600 group-hover:text-memory-maroon">
-              View Photographic Archives
-            </span>
-          </button>
-        )}
+      <div className="max-w-4xl mx-auto px-6 md:px-12 pt-12 pb-8 text-center">
+        <h1 className="font-serif text-display text-ink">{subjectName}</h1>
+        {dates && <p className="text-small text-ink-muted mt-3">{dates}</p>}
       </div>
     </section>
   );

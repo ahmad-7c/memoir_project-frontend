@@ -7,64 +7,49 @@ import { X } from "lucide-react";
 interface ContributorsOverlayProps {
   showContributors: boolean;
   setShowContributors: (val: boolean) => void;
-  contributorNames: { name: string; top: string; left: string; size: string; scale: number; blur: string; }[];
+  contributorNames: { name: string; top: string; left: string; size: string; scale: number; blur: string }[];
 }
 
+/**
+ * Previously an abstract dreamscape of contributor names floating and
+ * glowing at random positions, each bobbing up and down forever -- replaced
+ * with a plain list, since continuous looping motion and drop-shadow glow
+ * are both against the brief. Only each person's name is used now; the
+ * position/size/blur fields on contributorNames are no longer read.
+ */
 export function ContributorsOverlay({ showContributors, setShowContributors, contributorNames }: ContributorsOverlayProps) {
   return (
     <AnimatePresence>
       {showContributors && (
-        <motion.div 
+        <motion.div
           key="contributors-overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { duration: 0.3 } }}
-          className={`fixed inset-0 z-100 bg-stone-950/70 backdrop-blur-3xl overflow-hidden ${showContributors ? 'pointer-events-auto' : 'pointer-events-none'}`}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.24 }}
+          className="fixed inset-0 z-100 bg-canvas/95 backdrop-blur-sm flex items-center justify-center px-6"
         >
-          <div className="absolute bottom-10 right-10 z-50">
-            <motion.button 
-              type="button"
-              onClick={() => setShowContributors(false)}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className="bg-white/10 hover:bg-white/20 text-memory-light border border-white/20 px-8 py-4 rounded-xl text-[16px] font-semibold transition-all duration-300 shadow-2xl cursor-pointer flex items-center gap-3 backdrop-blur-md"
-            >
-              <span>Return to Desk</span> <X size={18} />
-            </motion.button>
-          </div>
+          <div className="w-full max-w-sm bg-surface border border-line rounded-md p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="font-serif text-subhead text-ink">Contributors</h2>
+              <button
+                type="button"
+                onClick={() => setShowContributors(false)}
+                className="text-ink-muted hover:text-ink transition-colors cursor-pointer p-1"
+                aria-label="Close"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-          {contributorNames.map((person, idx) => (
-            <motion.div
-              key={`contributor-${person.name}`}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ 
-                opacity: 1, 
-                y: [0, -15, 0],
-                scale: person.scale
-              }}
-              exit={{ 
-                opacity: 0, 
-                scale: 0.9, 
-                y: 10,
-                transition: { duration: 0.2 } 
-              }}
-              transition={{ 
-                opacity: { duration: 0.8, delay: idx * 0.1 },
-                scale: { duration: 0.8, delay: idx * 0.1 },
-                y: { 
-                  duration: 5 + (idx % 4), 
-                  repeat: Infinity, 
-                  ease: "easeInOut",
-                  delay: idx * 0.2
-                }
-              }}
-              className={`absolute font-sans font-light tracking-widest text-memory-light drop-shadow-[0_0_15px_rgba(255,255,255,0.15)] flex items-center gap-3 select-none pointer-events-none ${person.size} ${person.blur}`}
-              style={{ top: person.top, left: person.left }}
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-[#D4A373] animate-pulse opacity-80 shadow-[0_0_8px_#D4A373]" />
-              {person.name}
-            </motion.div>
-          ))}
+            <ul className="flex flex-col gap-3">
+              {contributorNames.map((person) => (
+                <li key={person.name} className="text-body-ui text-ink-secondary">
+                  {person.name}
+                </li>
+              ))}
+            </ul>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

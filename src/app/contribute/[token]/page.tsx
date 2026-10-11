@@ -7,6 +7,10 @@ import { NarrativeSectionsView } from "@/features/narrative/NarrativeSectionsVie
 import { MemoryComments } from "@/features/comments/MemoryComments";
 import { LoadingState, ErrorState } from "@/components/ui/ScreenStates";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
+import { AudioPlayer } from "@/components/ui/AudioPlayer";
+import MemoirHero from "@/features/FinalMemoir/MemoirHero";
 
 type Stage = "loading" | "unlock" | "memoir" | "error";
 
@@ -27,41 +31,37 @@ function ReaderMemoryCard({
   const audio = memory.media.filter((m) => m.kind === "audio" && m.playback_url);
 
   return (
-    <article className="mb-10 pb-10 border-b border-memory-border dark:border-memory-border last:border-0">
-      {memory.title && (
-        <h3 className="font-serif text-xl text-memory-primary dark:text-memory-ink mb-1">{memory.title}</h3>
-      )}
+    <article className="mb-12 pb-12 border-b border-line last:border-0 last:pb-0 max-w-prose">
+      {memory.title && <h3 className="font-serif text-subhead text-ink mb-1">{memory.title}</h3>}
       {memory.occurred_start && (
-        <p className="text-[11px] uppercase tracking-[0.18em] text-memory-muted mb-3">{memory.occurred_start}</p>
+        <p className="text-micro uppercase tracking-[0.06em] text-ink-muted mb-3">{memory.occurred_start}</p>
       )}
 
       {memory.body_text && (
-        <p className="text-[17px] font-serif leading-[1.9] text-memory-primary dark:text-memory-ink whitespace-pre-wrap">
+        <p className="font-serif text-body-read text-ink-secondary leading-relaxed whitespace-pre-wrap">
           {memory.body_text}
         </p>
       )}
 
       {photos.length > 0 && (
-        <div className="flex flex-wrap gap-4 mt-4">
+        <div className="flex flex-col gap-6 mt-6">
           {photos.map((photo) => (
-            // eslint-disable-next-line @next/next/no-img-element
+            // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived Supabase URL
             <img
               key={photo.id}
               src={photo.playback_url || undefined}
               alt={photo.caption || memory.title || "A family photograph"}
-              className="max-w-full sm:max-w-80 rounded-sm border border-memory-border shadow-sm"
+              className="w-full rounded-sm border border-line"
             />
           ))}
         </div>
       )}
 
       {audio.map((clip) => (
-        <div key={clip.id} className="mt-4 space-y-1.5 max-w-sm">
-          <div className="bg-memory-card dark:bg-memory-card border border-memory-border rounded-2xl p-3">
-            <audio controls src={clip.playback_url || undefined} className="w-full h-9" controlsList="nodownload" />
-          </div>
+        <div key={clip.id} className="mt-6 flex flex-col gap-2 max-w-sm">
+          <AudioPlayer src={clip.playback_url || ""} />
           {clip.transcript_text && (
-            <p className="text-[13px] text-memory-muted italic pl-3 border-l border-memory-border">
+            <p className="text-small text-ink-muted italic pl-4 border-l border-line">
               &quot;{clip.transcript_text}&quot;
             </p>
           )}
@@ -162,7 +162,7 @@ export default function ContributorPage() {
 
   if (stage === "loading") {
     return (
-      <div className="min-h-screen bg-memory-bg dark:bg-memory-bg flex items-center justify-center">
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
         <LoadingState label="Opening the memoir…" />
       </div>
     );
@@ -170,8 +170,8 @@ export default function ContributorPage() {
 
   if (stage === "error") {
     return (
-      <div className="min-h-screen bg-memory-bg dark:bg-memory-bg flex flex-col items-center justify-center gap-5 px-6 text-center font-sans">
-        <h1 className="font-serif text-2xl text-memory-primary dark:text-memory-ink">This link no longer works</h1>
+      <div className="min-h-screen bg-canvas flex flex-col items-center justify-center gap-5 px-6 text-center">
+        <h1 className="font-serif text-heading text-ink">This link no longer works</h1>
         <ErrorState message={error || "Please ask the family for a current link."} />
       </div>
     );
@@ -179,30 +179,23 @@ export default function ContributorPage() {
 
   if (stage === "unlock") {
     return (
-      <div className="min-h-screen bg-memory-bg dark:bg-memory-bg flex items-center justify-center px-6 font-sans">
-        <div className="w-full max-w-110 bg-memory-card dark:bg-memory-card border border-memory-border rounded-3xl px-8 py-10 shadow-sm">
-          <h1 className="font-serif text-3xl text-memory-primary dark:text-memory-ink mb-2 text-center">
-            You&apos;ve been invited in
-          </h1>
-          <p className="text-memory-muted text-[14px] text-center mb-8 leading-relaxed">
+      <div className="min-h-screen bg-canvas flex items-center justify-center px-6">
+        <div className="w-full max-w-md bg-surface border border-line rounded-md px-8 py-12">
+          <h1 className="font-serif text-heading text-ink mb-3 text-center">You&apos;ve been invited in</h1>
+          <p className="text-body-ui text-ink-secondary text-center mb-10 leading-relaxed">
             Enter your name and the password the family shared with you personally.
           </p>
 
           {unlockError && (
-            <div role="alert" className="mb-5 p-3 rounded-xl bg-memory-bg dark:bg-memory-bg border border-memory-border text-memory-primary dark:text-memory-ink text-[13px]">
+            <div role="alert" className="mb-6 px-4 py-3 rounded-sm border border-line bg-surface-sunk text-body-ui text-ink">
               {unlockError}
             </div>
           )}
 
-          <form onSubmit={handleUnlock} className="flex flex-col gap-4">
+          <form onSubmit={handleUnlock} className="flex flex-col gap-6">
             <div>
-              <label
-                htmlFor="display-name"
-                className="block text-xs uppercase tracking-widest font-bold text-memory-primary/70 dark:text-memory-ink/70 mb-1.5"
-              >
-                Your Name
-              </label>
-              <input
+              <Label htmlFor="display-name">Your name</Label>
+              <Input
                 id="display-name"
                 type="text"
                 required
@@ -211,30 +204,23 @@ export default function ContributorPage() {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="e.g. Sarah"
-                className="w-full rounded-xl border border-memory-border bg-white dark:bg-memory-bg px-5 py-4 text-[16px] text-memory-primary dark:text-memory-ink placeholder:text-memory-muted/60 outline-none focus:border-memory-accent focus:ring-2 focus:ring-memory-accent/20 transition-all duration-300 font-serif"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="unlock-password"
-                className="block text-xs uppercase tracking-widest font-bold text-memory-primary/70 dark:text-memory-ink/70 mb-1.5"
-              >
-                Password
-              </label>
-              <input
+              <Label htmlFor="unlock-password">Password</Label>
+              <Input
                 id="unlock-password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Given to you personally by the family"
-                className="w-full rounded-xl border border-memory-border bg-white dark:bg-memory-bg px-5 py-4 text-[16px] text-memory-primary dark:text-memory-ink placeholder:text-memory-muted/60 outline-none focus:border-memory-accent focus:ring-2 focus:ring-memory-accent/20 transition-all duration-300 font-serif"
               />
             </div>
 
             <Button type="submit" size="lg" loading={unlocking} className="w-full mt-2">
-              {unlocking ? "Opening…" : "View the Memoir"}
+              {unlocking ? "Opening…" : "View the memoir"}
             </Button>
           </form>
         </div>
@@ -245,23 +231,21 @@ export default function ContributorPage() {
   if (!memoirData || !readerToken) return null;
 
   const hasChapters = memoirData.chapters.length > 0;
+  const dates = [
+    memoirData.subject_born_on ? memoirData.subject_born_on.slice(0, 4) : "",
+    memoirData.subject_is_living ? "Present" : memoirData.subject_died_on ? memoirData.subject_died_on.slice(0, 4) : "",
+  ]
+    .filter(Boolean)
+    .join(" — ");
 
   return (
-    <div className="min-h-screen bg-memory-bg dark:bg-memory-bg text-memory-primary dark:text-memory-ink font-sans flex flex-col items-center pt-20 pb-32">
-      <header className="mb-14 text-center px-6">
-        <h1 className="font-serif text-4xl md:text-5xl text-memory-primary dark:text-memory-ink mb-2">
-          {memoirData.subject_name}
-        </h1>
-        {(memoirData.subject_born_on || memoirData.subject_died_on) && (
-          <p className="text-memory-muted tracking-[0.15em] uppercase text-xs">
-            {memoirData.subject_born_on?.slice(0, 4)}
-            {" — "}
-            {memoirData.subject_is_living ? "Present" : memoirData.subject_died_on?.slice(0, 4)}
-          </p>
-        )}
-      </header>
+    <div className="min-h-screen bg-canvas">
+      {/* No cover image: the share API has no cover-image field for a
+          reader-side memoir, so MemoirHero's own conditional handles that
+          honestly rather than this page inventing a photo that isn't there. */}
+      <MemoirHero subjectName={memoirData.subject_name} dates={dates} />
 
-      <main className="max-w-2xl w-full px-6">
+      <main className="max-w-prose mx-auto px-6 pb-32">
         {!hasChapters && memoirData.narrative_sections.length > 0 && (
           <div className="mb-16">
             <NarrativeSectionsView
@@ -280,17 +264,15 @@ export default function ContributorPage() {
 
             return (
               <section key={chapter.id} className="mb-16">
-                <div className="mb-4 pb-3 border-b border-memory-border dark:border-memory-border">
-                  <h2 className="font-serif text-2xl md:text-3xl text-memory-primary dark:text-memory-ink">
-                    {chapter.title}
-                  </h2>
+                <div className="mb-6 pb-4 border-b border-line">
+                  <h2 className="font-serif text-heading text-ink">{chapter.title}</h2>
                   {chapter.summary && (
-                    <p className="font-serif italic text-memory-muted text-sm mt-2">{chapter.summary}</p>
+                    <p className="font-serif text-body-read text-ink-secondary italic mt-2">{chapter.summary}</p>
                   )}
                 </div>
 
                 {chapterNarrative.length > 0 && (
-                  <div className="mb-6">
+                  <div className="mb-8">
                     <NarrativeSectionsView
                       memoirId={memoirData.id}
                       sections={chapterNarrative}
@@ -302,7 +284,7 @@ export default function ContributorPage() {
                 )}
 
                 {chapterMemories.length === 0 ? (
-                  <p className="text-sm font-serif italic text-memory-muted py-2">No memories in this chapter yet.</p>
+                  <p className="font-serif text-body-read text-ink-muted italic py-2">No memories in this chapter yet.</p>
                 ) : (
                   chapterMemories.map((memory) => (
                     <ReaderMemoryCard
@@ -319,7 +301,7 @@ export default function ContributorPage() {
             );
           })
         ) : memoirData.memories.length === 0 ? (
-          <p className="text-center font-serif italic text-memory-muted py-10">
+          <p className="text-center font-serif text-body-read text-ink-muted italic py-16">
             Nothing has been added to this memoir yet.
           </p>
         ) : (
