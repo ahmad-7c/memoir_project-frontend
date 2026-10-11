@@ -42,3 +42,7 @@ next-env.d.ts
 
 # Keep the template's example env file tracked.
 !.env.example
+
+# Reference-design composition assets (serene-memoir-canvas.lovable.app).
+# Study-only -- these belong to that project and must never ship in public/.
+/docs/reference-images/
