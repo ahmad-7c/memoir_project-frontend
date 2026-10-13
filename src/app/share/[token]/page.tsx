@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { api, SharedMemoirFull, SharedMemory } from "@/lib/api/client";
+import { api, SharedMemoirFull, SharedMemory, SharePreview } from "@/lib/api/client";
 import { NarrativeSectionsView } from "@/features/narrative/NarrativeSectionsView";
 import { MemoryComments } from "@/features/comments/MemoryComments";
 import { LoadingState, ErrorState } from "@/components/ui/ScreenStates";
@@ -17,7 +17,7 @@ import Footer from "@/components/Footer";
 import { DROP_CAP_CLASS } from "@/lib/dropCap";
 import { cn } from "@/lib/utils";
 
-type Stage = "loading" | "unlock" | "memoir" | "error";
+type Stage = "loading" | "unlock" | "memoir" | "not_found" | "unavailable" | "expired";
 
 function ReaderMemoryCard({
   memoirId,
@@ -68,7 +68,7 @@ function ReaderMemoryCard({
         <div key={clip.id} className="mt-4 flex flex-col gap-2">
           <AudioPlayer src={clip.playback_url || ""} />
           {clip.transcript_text && (
-            <p className="text-xs text-muted-foreground italic pl-3 border-l border-border">
+            <p className="text-xs text-muted-foreground italic pl-3 border-l border-accent">
               &ldquo;{clip.transcript_text}&rdquo;
             </p>
           )}
@@ -95,6 +95,13 @@ export default function ContributorPage() {
   const [memoirData, setMemoirData] = useState<SharedMemoirFull | null>(null);
   const [readerToken, setReaderToken] = useState<string | undefined>(undefined);
 
+  // Shown above the password form -- who this memoir is about, and their
+  // photo -- fetched with no credential at all (see api.getSharePreview).
+  // Absent (not an error) if even the preview call fails: the unlock form
+  // still works without it, and that failure will surface again, louder,
+  // the moment the real unlock is attempted.
+  const [preview, setPreview] = useState<SharePreview | null>(null);
+
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [unlockError, setUnlockError] = useState<string | null>(null);
@@ -113,19 +120,21 @@ export default function ContributorPage() {
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
       if (status === 401) {
-        // Expired/invalid reader token -- back to the password form with an
-        // inline error, not the "link is dead" screen (different cases).
+        // This browser's saved reader token is no longer valid -- a
+        // distinct screen from "the link itself is dead" (404) or "this
+        // memoir isn't shareable right now" (409): the link is fine, this
+        // one visit's credential expired, and re-entering the password
+        // fixes it.
         sessionStorage.removeItem(storageKey);
-        setUnlockError("That session expired. Please sign in again.");
-        setStage("unlock");
+        setStage("expired");
       } else if (status === 409) {
         // Server's own message, verbatim -- typically "this memoir has been
         // unpublished" or a similar state conflict, not a generic failure.
         setError(err instanceof Error ? err.message : "This memoir is not available right now.");
-        setStage("error");
+        setStage("unavailable");
       } else {
         setError(err instanceof Error ? err.message : "This link no longer works.");
-        setStage("error");
+        setStage("not_found");
       }
     }
   };
@@ -133,6 +142,7 @@ export default function ContributorPage() {
   useEffect(() => {
     if (!token) return;
     Promise.resolve().then(() => {
+      api.getSharePreview(token).then(setPreview).catch(() => setPreview(null));
       const existingToken = sessionStorage.getItem(storageKey);
       if (existingToken) {
         fetchMemoir(existingToken);
@@ -155,10 +165,10 @@ export default function ContributorPage() {
       const status = (err as { status?: number })?.status;
       if (status === 404) {
         setError("This link no longer works.");
-        setStage("error");
+        setStage("not_found");
       } else if (status === 409) {
         setError(err instanceof Error ? err.message : "This memoir is not available right now.");
-        setStage("error");
+        setStage("unavailable");
       } else {
         // 401 (wrong password) and anything else surface inline, on the
         // same form, so the family can just try again.
@@ -184,7 +194,7 @@ export default function ContributorPage() {
     );
   }
 
-  if (stage === "error") {
+  if (stage === "not_found") {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
         {brandMark}
@@ -194,11 +204,57 @@ export default function ContributorPage() {
     );
   }
 
+  if (stage === "unavailable") {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center gap-5 px-6 text-center">
+        {brandMark}
+        <h1 className="font-serif text-3xl text-foreground mt-4">Not available right now</h1>
+        <ErrorState message={error || "This memoir isn't shareable at the moment."} />
+      </main>
+    );
+  }
+
+  if (stage === "expired") {
+    return (
+      <main className="min-h-screen flex flex-col items-center justify-center gap-6 px-6 text-center">
+        {brandMark}
+        <h1 className="font-serif text-3xl text-foreground mt-4">Your session expired</h1>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          The link still works -- just sign in again with your name and the password the family gave you.
+        </p>
+        <Button type="button" onClick={() => setStage("unlock")}>
+          Sign in again &rarr;
+        </Button>
+      </main>
+    );
+  }
+
   if (stage === "unlock") {
     return (
       <main className="min-h-screen flex items-center justify-center px-6">
         <div className="w-full max-w-md">
           <div className="mb-8 flex justify-center">{brandMark}</div>
+
+          {preview && (
+            <div className="flex flex-col items-center mb-8">
+              {preview.cover_image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element -- signed, short-lived Supabase URL
+                <img
+                  src={preview.cover_image_url}
+                  alt={`A photograph of ${preview.subject_name}`}
+                  className="w-24 h-24 rounded-full object-cover mb-4"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-secondary flex items-center justify-center mb-4">
+                  <span className="font-serif text-3xl text-muted-foreground">
+                    {preview.subject_name.charAt(0)}
+                  </span>
+                </div>
+              )}
+              <p className="font-serif text-2xl text-foreground">{preview.subject_name}</p>
+            </div>
+          )}
+
           <p className="text-[10px] font-medium uppercase tracking-[2px] text-muted-foreground mb-3 text-center">
             You&rsquo;ve been invited in
           </p>

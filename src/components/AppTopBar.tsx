@@ -36,14 +36,18 @@ export default function AppTopBar() {
         The Family Memoir
       </Link>
       <nav className="flex items-center gap-[34px]">
-        <Link href="/memories" className="hidden sm:inline text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/memories" className="hidden sm:inline text-xs text-muted-foreground hover:text-accent transition-colors">
           Your memoir
         </Link>
-        <Link href="/memoir" className="hidden sm:inline text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/memoir" className="hidden sm:inline text-xs text-muted-foreground hover:text-accent transition-colors">
           Read the memoir
         </Link>
         <Link href="/profile" aria-label="Your profile">
-          <InitialAvatar initial={initial} size={36} />
+          <InitialAvatar
+            initial={initial}
+            size={36}
+            style={{ backgroundColor: "var(--accent)", color: "var(--accent-foreground)" }}
+          />
         </Link>
       </nav>
     </header>

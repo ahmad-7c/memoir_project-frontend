@@ -5,10 +5,12 @@ export function InitialAvatar({
   initial,
   size = 36,
   className = "",
+  style,
 }: {
   initial: string;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
@@ -16,7 +18,7 @@ export function InitialAvatar({
         "inline-flex items-center justify-center rounded-full bg-secondary text-foreground font-serif shrink-0",
         className,
       )}
-      style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.4), ...style }}
       aria-hidden="true"
     >
       {initial}

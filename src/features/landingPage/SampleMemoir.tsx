@@ -32,7 +32,7 @@ export function SampleMemoir() {
       </section>
 
       <section id="sample-memoir" className="max-w-[1100px] mx-auto px-6 md:px-10 pb-16">
-        <div className="flex items-center justify-between gap-3 py-5 text-[11px] border-t border-b border-border">
+        <div className="flex items-center justify-between gap-3 py-5 text-[11px] border-t border-b border-accent">
           <span className="flex items-center gap-2 text-foreground">
             <span aria-hidden="true">📖</span>
             The life of Arthur Bellamy &middot; 1941 — 2023
@@ -48,7 +48,7 @@ export function SampleMemoir() {
           <div className="hidden md:flex flex-col gap-5 text-[11px]">
             <Eyebrow>The chapters</Eyebrow>
             {chapters.map((c) => (
-              <div key={c.number} className={c.active ? "text-foreground" : "text-muted-foreground"}>
+              <div key={c.number} className={c.active ? "text-accent" : "text-muted-foreground"}>
                 <span className="font-serif mr-2">{c.number}</span>
                 {c.title}
               </div>

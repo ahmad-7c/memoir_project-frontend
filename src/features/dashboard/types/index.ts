@@ -11,4 +11,8 @@ export interface MemoryItem {
   audioUrl?: string | null;
   duration?: string;
   transcription?: string | null;
+  /** The audio media asset's id, needed to retry its transcription. */
+  audioAssetId?: string;
+  /** "pending" | "processing" | "ready" | "failed" | "stalled", absent when there's no audio. */
+  transcriptionStatus?: string;
 }

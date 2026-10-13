@@ -6,12 +6,14 @@ import { MemoryItem } from "@/features/dashboard/types";
 
 // 1. Strict TypeScript Interfaces to clear "@typescript-eslint/no-explicit-any"
 interface BackendAsset {
+  id?: string;
   kind?: string;
   mime_type?: string;
   playback_url?: string;
   url?: string;
   signed_url?: string;
   duration_ms?: number;
+  transcription_status?: string;
   transcript?: {
     display_text?: string;
     raw_text?: string;
@@ -90,9 +92,11 @@ export function useMemoirFeed(memoirId: string) {
           author: "",
           author_participant_id: item.author_participant_id,
           chapter_id: item.chapter_id, // Attached chapter_id here
-          mediaUrl: getUrl(photoAsset), 
-          audioUrl: getUrl(audioAsset), 
+          mediaUrl: getUrl(photoAsset),
+          audioUrl: getUrl(audioAsset),
           transcription: transcriptText,
+          audioAssetId: audioAsset?.id,
+          transcriptionStatus: audioAsset ? audioAsset.transcription_status : undefined,
           duration: audioAsset?.duration_ms ? `${Math.round(audioAsset.duration_ms / 1000)}s` : undefined,
         };
       });

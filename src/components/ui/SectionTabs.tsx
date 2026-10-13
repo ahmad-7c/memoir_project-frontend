@@ -19,11 +19,11 @@ export function SectionTabs({ tabs, active }: { tabs: SectionTab[]; active: stri
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "relative py-3 text-sm transition-colors",
-              isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground",
+              isActive ? "text-foreground font-medium" : "text-muted-foreground hover:text-accent",
             )}
           >
             {tab.label}
-            {isActive && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-primary" aria-hidden="true" />}
+            {isActive && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-accent" aria-hidden="true" />}
           </Link>
         );
       })}

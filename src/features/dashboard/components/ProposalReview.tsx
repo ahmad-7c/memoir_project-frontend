@@ -106,7 +106,7 @@ export function ProposalReview({ proposal, onApply, onDiscard, isApplying }: Pro
                 <div className="mt-2 ml-8 pl-3 border-l-2 border-border">
                   <p className="font-serif text-sm text-muted-foreground">{chapter.summary}</p>
                   <p className="mt-1.5 flex items-center gap-1 text-[10px] uppercase tracking-[0.06em] text-muted-foreground font-semibold">
-                    <Sparkles size={10} />
+                    <Sparkles size={10} className="text-accent" />
                     AI-written, editable after applying
                   </p>
                 </div>

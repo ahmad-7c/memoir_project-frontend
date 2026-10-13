@@ -90,7 +90,7 @@ export function NarrativeSources({ memoirId, sectionId, shareToken, readerToken 
                     <div className="flex flex-col gap-1.5">
                       <AudioPlayer src={m.playback_url} />
                       {m.transcript_text && (
-                        <p className="text-xs text-muted-foreground italic pl-3 border-l border-border">&ldquo;{m.transcript_text}&rdquo;</p>
+                        <p className="text-xs text-muted-foreground italic pl-3 border-l border-accent">&ldquo;{m.transcript_text}&rdquo;</p>
                       )}
                     </div>
                   )}

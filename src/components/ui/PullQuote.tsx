@@ -12,7 +12,7 @@ export function PullQuote({
 }) {
   return (
     <figure className={cn("mt-6", className)}>
-      <blockquote className="font-serif italic text-xl leading-snug text-foreground">{children}</blockquote>
+      <blockquote className="font-serif italic text-xl leading-snug text-accent">{children}</blockquote>
       {attribution && <figcaption className="mt-2 text-[11px] text-muted-foreground">{attribution}</figcaption>}
     </figure>
   );

@@ -79,9 +79,9 @@ export function AudioPlayer({ src, className = "" }: { src: string; className?: 
         value={currentTime}
         onChange={seek}
         aria-label="Seek"
-        className="flex-1 h-1 rounded-sm appearance-none cursor-pointer bg-border accent-primary"
+        className="flex-1 h-1 rounded-sm appearance-none cursor-pointer bg-border accent-[var(--accent)]"
         style={{
-          background: `linear-gradient(to right, var(--primary) ${progress}%, var(--border) ${progress}%)`,
+          background: `linear-gradient(to right, var(--accent) ${progress}%, var(--border) ${progress}%)`,
         }}
       />
       <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
@@ -129,7 +129,7 @@ export function AudioMemory({
         )}
       </div>
       {transcript && open && (
-        <p className="mt-3 text-sm leading-relaxed text-foreground border-l border-border pl-4">{transcript}</p>
+        <p className="mt-3 text-sm leading-relaxed text-foreground border-l border-accent pl-4">{transcript}</p>
       )}
     </div>
   );

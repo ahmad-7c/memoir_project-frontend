@@ -213,77 +213,115 @@ export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
     setLoading(true);
 
     try {
-      const mediaAssetIds: string[] = [];
-
-      // 4. Photo Upload Pipeline
-      if (photoFile) {
-        const photoId = await uploadMediaAsset(
-          currentMemoirId,
-          photoFile,
-          photoFile.name,
-          photoFile.type,
-          "photo",
-          { caption: photoCaption, durationMs: null },
-        );
-        mediaAssetIds.push(photoId);
-      }
-
-      // 5. Audio Upload Pipeline
-      if (audioBlob) {
-        const audioFileName = `voice_memo_${Date.now()}.webm`;
-        // const calculatedDuration = await getAudioDurationMs(audioBlob);
-        const audioId = await uploadMediaAsset(
-          currentMemoirId,
-          audioBlob,
-          audioFileName,
-          "audio/webm",
-          "audio",
-          { caption: "Voice recording", durationMs: 0 },
-        );
-        mediaAssetIds.push(audioId);
-      }
-
-      // 6. Persist Memory to Supabase
       const hasDate = Boolean(draft.occurred_start);
 
-      await api.createMemory({
+      // ---------------------------------------------------------------
+      // STEP 1 -- THE WORDS, FIRST. Before a single byte is uploaded.
+      //
+      // The old order was uploads first, createMemory last, which meant a
+      // connection that dropped partway through a photo upload threw away
+      // everything the author had typed. Media is replaceable; a memory
+      // someone sat down to write is not.
+      //
+      // Saved as "draft" so it is not yet visible to the share link or to
+      // AI organization (both filter on status="submitted"); it is promoted
+      // to "submitted" at the end, once the attachments are on it.
+      // ---------------------------------------------------------------
+      const created = await api.createMemory({
         memoir_id: currentMemoirId,
         title: draft.title.trim(),
         body_text: draft.body_text ? draft.body_text.trim() : null,
-        // "submitted" (finalized), not "draft": this form has no separate
-        // draft/finalize step, so submitting it here IS the finalization.
-        // "draft" would make the memory invisible to the share link and AI
-        // organization -- both filter on status="submitted". Must match the
-        // public.memory_status Postgres enum exactly (draft/submitted) --
-        // "saved" is not a valid value there and 500s at the DB layer.
-        status: "submitted",
+        status: "draft",
         occurred_start: hasDate ? draft.occurred_start : null,
         occurred_end: hasDate ? draft.occurred_start : null,
         occurred_precision: hasDate ? "day" : null,
         date_source: hasDate ? "owner" : null,
-        media_asset_ids: mediaAssetIds,
+        media_asset_ids: [],
       });
 
-      // 7. Cleanup form state and storage on success
+      const memoryId: string | undefined = created?.data?.id ?? created?.id;
+      if (!memoryId) {
+        throw new Error("The memory was saved but the server did not return its id.");
+      }
+
+      // ---------------------------------------------------------------
+      // STEP 2 -- attachments, one at a time, each attached to the memory
+      // that already exists. A failure here is reported honestly and does
+      // NOT discard the text, because the text is already on the server.
+      // ---------------------------------------------------------------
+      const uploadFailures: string[] = [];
+
+      if (photoFile) {
+        try {
+          const photoId = await uploadMediaAsset(
+            currentMemoirId,
+            photoFile,
+            photoFile.name,
+            photoFile.type,
+            "photo",
+            { caption: photoCaption, durationMs: null },
+          );
+          await api.updateMemory(currentMemoirId, memoryId, { media_asset_ids: [photoId] });
+        } catch (photoErr) {
+          console.error("Photo upload failed", photoErr);
+          uploadFailures.push("the photograph");
+        }
+      }
+
+      if (audioBlob) {
+        try {
+          const audioId = await uploadMediaAsset(
+            currentMemoirId,
+            audioBlob,
+            `voice_memo_${Date.now()}.webm`,
+            "audio/webm",
+            "audio",
+            { caption: "Voice recording", durationMs: 0 },
+          );
+          await api.updateMemory(currentMemoirId, memoryId, { media_asset_ids: [audioId] });
+        } catch (audioErr) {
+          console.error("Audio upload failed", audioErr);
+          uploadFailures.push("the recording");
+        }
+      }
+
+      // STEP 3 -- finalize. Promoting to "submitted" is what makes it real
+      // to the rest of the product.
+      await api.updateMemory(currentMemoirId, memoryId, { status: "submitted" });
+
+      if (uploadFailures.length > 0) {
+        // Says exactly what survived and what didn't, per §5a.
+        setError(
+          `Your words are saved. ${uploadFailures.join(" and ")} didn't finish uploading — ` +
+            `open the memory to try attaching ${uploadFailures.length > 1 ? "them" : "it"} again.`,
+        );
+      }
+
+      // Cleanup form state and storage. Safe even on a partial failure --
+      // the memory exists and the attachments that did upload are on it.
       localStorage.removeItem(`memory_draft_${currentMemoirId}`);
       setDraft({
         title: "",
         body_text: "",
         occurred_start: new Date().toISOString().split("T")[0],
       });
+      const hadAudio = Boolean(audioBlob);
       setPhotoFile(null);
       setPhotoCaption("");
       clearRecording();
 
-      setSuccessMsg("Memory successfully captured! Transcribing audio...");
-      
-      // before we refresh the visual feed.
-      if (onSuccess) {
-        setTimeout(() => {
-          onSuccess();
-        }, 3000); 
+      if (uploadFailures.length === 0) {
+        // Only mention transcription when there is actually audio to
+        // transcribe -- the old copy claimed it on every text-only memory.
+        setSuccessMsg(
+          hadAudio ? "Saved. The recording is being transcribed." : "Saved.",
+        );
       }
-      
+
+      // Refresh immediately. The previous 3s delay was waiting on a
+      // transcript that takes far longer than that anyway, so it only ever
+      // made saving feel slow without making the transcript any readier.
+      onSuccess?.();
     } catch (err: unknown) {
       if (err instanceof Error) {
         setError(err.message);
@@ -291,10 +329,7 @@ export function useCaptureMemory(memoirId: string, onSuccess?: () => void) {
         setError("An unexpected error occurred while saving your memory.");
       }
     } finally {
-      // Keep the loading spinner spinning while we wait for the transcript
-      setTimeout(() => {
-        setLoading(false);
-      }, 3000);
+      setLoading(false);
     }
   };
   return {

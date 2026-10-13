@@ -32,6 +32,36 @@ function formatUpdated(iso: string): string {
   }
 }
 
+function MemoirCard({ memoir, onOpen }: { memoir: OwnerMemoirSummary; onOpen: (memoir: OwnerMemoirSummary) => void }) {
+  return (
+    <button type="button" onClick={() => onOpen(memoir)} className="text-left w-full cursor-pointer">
+      <Card className="flex flex-col sm:flex-row hover:border-foreground/30 transition-colors">
+        <div className="sm:w-56 shrink-0">
+          {memoir.cover_image_url ? (
+            <Card.Media src={memoir.cover_image_url} alt={memoir.subject_name} />
+          ) : (
+            <div className="w-full aspect-3/2 bg-secondary flex items-center justify-center">
+              <span className="font-serif text-2xl text-muted-foreground">{memoir.subject_name.charAt(0)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex-1 min-w-0 p-6 flex flex-col justify-center">
+          <div className="flex items-start justify-between gap-3 mb-1">
+            <h3 className="font-serif text-3xl text-foreground truncate">{memoir.subject_name}</h3>
+            {memoir.status === "published" && <Badge variant="default">Published</Badge>}
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">{formatDates(memoir)}</p>
+          <p className="text-xs text-muted-foreground">
+            {memoir.memory_count} {memoir.memory_count === 1 ? "memory" : "memories"} · updated{" "}
+            {formatUpdated(memoir.updated_at)}
+          </p>
+        </div>
+      </Card>
+    </button>
+  );
+}
+
 export default function ProfilePage() {
   const router = useRouter();
   const { handleLogout } = useAuth();
@@ -65,21 +95,15 @@ export default function ProfilePage() {
     };
   }, []);
 
-  // Clicking a memoir hands the chosen one to the dashboard/final-memoir
-  // pages exactly the way they already resolve their active memoir
-  // elsewhere (useAuth, dashboard/page.tsx) -- via the same localStorage key.
+  // §1: each memoir's workspace is scoped to its own id now -- a draft
+  // opens its workspace, a published memoir has no workspace at all and
+  // opens the read-only book instead (see WorkspaceGuard and /book/[id]).
   const openMemoir = (memoir: OwnerMemoirSummary) => {
-    localStorage.setItem(
-      "active_memoir",
-      JSON.stringify({
-        id: memoir.id,
-        subject_name: memoir.subject_name,
-        subject_born_on: memoir.subject_born_on,
-        subject_died_on: memoir.subject_died_on,
-      }),
-    );
-    router.push(memoir.status === "published" ? "/memoir" : "/memories");
+    router.push(memoir.status === "published" ? `/book/${memoir.id}` : `/memoirs/${memoir.id}/memories`);
   };
+
+  const inProgress = profile?.memoirs.filter((m) => m.status === "draft") ?? [];
+  const published = profile?.memoirs.filter((m) => m.status === "published") ?? [];
 
   return (
     <div className="min-h-screen bg-background px-6 md:px-12 py-12">
@@ -121,44 +145,34 @@ export default function ProfilePage() {
               </Badge>
             </motion.div>
 
-            <h2 className="font-serif text-xl text-foreground mb-6">Your memoirs</h2>
-
             {profile.memoirs.length === 0 ? (
               <EmptyState title="No memoirs yet" description="Once you create one, it will appear here." />
             ) : (
-              /* Ordering is the backend's, deliberately: drafts first
-                 (newest-edit-first, since they need attention), then
-                 published (newest-publish-first). Not re-sorted here. */
-              <div className="flex flex-col gap-5">
-                {profile.memoirs.map((memoir) => (
-                  <button key={memoir.id} type="button" onClick={() => openMemoir(memoir)} className="text-left w-full cursor-pointer">
-                    <Card className="flex flex-col sm:flex-row hover:border-foreground/30 transition-colors">
-                      <div className="sm:w-56 shrink-0">
-                        {memoir.cover_image_url ? (
-                          <Card.Media src={memoir.cover_image_url} alt={memoir.subject_name} />
-                        ) : (
-                          <div className="w-full aspect-3/2 bg-secondary flex items-center justify-center">
-                            <span className="font-serif text-2xl text-muted-foreground">
-                              {memoir.subject_name.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+              <div className="flex flex-col gap-12">
+                {/* §7: these are two distinct states, not one list sorted by
+                    status -- a draft still needs attention, a published
+                    memoir is finished and locked. Separate headings say so. */}
+                {inProgress.length > 0 && (
+                  <section>
+                    <h2 className="font-serif text-xl text-foreground mb-6">In progress</h2>
+                    <div className="flex flex-col gap-5">
+                      {inProgress.map((memoir) => (
+                        <MemoirCard key={memoir.id} memoir={memoir} onOpen={openMemoir} />
+                      ))}
+                    </div>
+                  </section>
+                )}
 
-                      <div className="flex-1 min-w-0 p-6 flex flex-col justify-center">
-                        <div className="flex items-start justify-between gap-3 mb-1">
-                          <h3 className="font-serif text-3xl text-foreground truncate">{memoir.subject_name}</h3>
-                          {memoir.status === "published" && <Badge variant="default">Published</Badge>}
-                        </div>
-                        <p className="text-xs text-muted-foreground mb-2">{formatDates(memoir)}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {memoir.memory_count} {memoir.memory_count === 1 ? "memory" : "memories"} · updated{" "}
-                          {formatUpdated(memoir.updated_at)}
-                        </p>
-                      </div>
-                    </Card>
-                  </button>
-                ))}
+                {published.length > 0 && (
+                  <section>
+                    <h2 className="font-serif text-xl text-foreground mb-6">Published</h2>
+                    <div className="flex flex-col gap-5">
+                      {published.map((memoir) => (
+                        <MemoirCard key={memoir.id} memoir={memoir} onOpen={openMemoir} />
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
             )}
           </>

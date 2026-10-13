@@ -31,7 +31,7 @@ function classes(variant: SharedProps["variant"] = "primary", size: SharedProps[
     "inline-flex items-center justify-center gap-2 font-sans transition-colors duration-200 ease-in-out cursor-pointer disabled:cursor-not-allowed disabled:opacity-50";
 
   if (variant === "ghost") {
-    return cn(base, "text-[13px] font-medium text-foreground hover:text-primary", "rounded-full px-1 py-1");
+    return cn(base, "text-[13px] font-medium text-foreground hover:text-accent", "rounded-full px-1 py-1");
   }
 
   const sizes = {
@@ -40,9 +40,9 @@ function classes(variant: SharedProps["variant"] = "primary", size: SharedProps[
   }[size ?? "md"];
 
   const variants = {
-    primary: "bg-primary text-primary-foreground hover:opacity-90 rounded-full font-medium",
+    primary: "bg-accent text-accent-foreground hover:opacity-90 rounded-full font-medium",
     hero:
-      "bg-[oklch(100%_0_0_/_0.1)] border border-[oklch(100%_0_0_/_0.4)] text-hero-foreground hover:bg-[oklch(100%_0_0_/_0.16)] rounded-full font-medium backdrop-blur-sm",
+      "bg-accent/80 border border-accent text-accent-foreground hover:bg-accent rounded-full font-medium backdrop-blur-sm",
     outline: "bg-card border border-border text-foreground hover:border-foreground/40 rounded-full font-medium",
   }[variant as "primary" | "hero" | "outline"];
 

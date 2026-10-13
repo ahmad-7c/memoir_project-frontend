@@ -15,7 +15,7 @@ export default function Home() {
         eyebrow="Every life leaves a story"
         title={
           <>
-            The Family Memoir<span className="italic">.</span>
+            The Family Memoir<span className="italic text-accent">.</span>
           </>
         }
         description={

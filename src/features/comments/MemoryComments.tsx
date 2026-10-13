@@ -156,13 +156,13 @@ export function MemoryComments({
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="Leave a note…"
-                className="flex-1 min-w-0 px-3 py-2 rounded-sm bg-secondary border border-border text-xs text-foreground outline-none focus:border-primary transition-colors"
+                className="flex-1 min-w-0 px-3 py-2 rounded-sm bg-secondary border border-border text-xs text-foreground outline-none focus:border-accent transition-colors"
               />
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting || !draft.trim()}
-                className="px-3 py-2 rounded-sm border border-border text-muted-foreground hover:bg-secondary text-[10px] font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-colors"
+                className="px-3 py-2 rounded-sm border border-accent text-accent hover:bg-accent hover:text-accent-foreground text-[10px] font-semibold cursor-pointer disabled:opacity-40 shrink-0 transition-colors"
               >
                 Add
               </button>

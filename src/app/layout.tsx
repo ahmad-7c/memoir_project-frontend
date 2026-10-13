@@ -1,6 +1,7 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
+import { MotionConfig } from "framer-motion";
 import "./globals.css";
 
 // Cormorant Garamond carries all headings, pull quotes and the wordmark --
@@ -34,7 +35,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${cormorant.variable} ${dmSans.variable}`}>
-      <body className="font-sans antialiased bg-background text-foreground">{children}</body>
+      <body className="font-sans antialiased bg-background text-foreground">
+        {/* The global CSS reduced-motion rule (globals.css) only catches CSS
+            transitions/animations -- framer-motion's `motion.div` elements
+            animate via JS and ignore that rule entirely. "user" makes every
+            motion component in the app honour the OS's prefers-reduced-motion
+            setting automatically, with no per-component change needed. */}
+        <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      </body>
     </html>
   );
 }

@@ -5,13 +5,23 @@ import { MoreHorizontal, Edit2, Trash2, FolderOutput } from "lucide-react";
 import { MemoryItem } from "../types";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import { InitialAvatar } from "@/components/ui/InitialAvatar";
+import { api } from "@/lib/api/client";
 
 interface MemoryCardProps {
   memory: MemoryItem;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   availableChapters?: any[];
   onOptionSelect?: (action: string, memoryId: string, targetChapterId?: string) => void;
+  /** Called after a retry is accepted so the caller can re-poll the feed for the new status. */
+  onRetried?: () => void;
 }
+
+const TRANSCRIPTION_STATUS_LABEL: Record<string, string> = {
+  pending: "Transcribing…",
+  processing: "Transcribing…",
+  failed: "Transcription failed.",
+  stalled: "Transcription didn't finish.",
+};
 
 /**
  * The reference's feed-card recipe: small circular avatar + attribution,
@@ -22,9 +32,25 @@ interface MemoryCardProps {
  * relationship field, so the attribution line shows the name alone rather
  * than inventing a "· relationship" suffix the data can't support.
  */
-export function MemoryCard({ memory, onOptionSelect, availableChapters }: MemoryCardProps) {
+export function MemoryCard({ memory, onOptionSelect, availableChapters, onRetried }: MemoryCardProps) {
   const [showOptions, setShowOptions] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleRetry = async () => {
+    if (!memory.audioAssetId || retrying) return;
+    setRetrying(true);
+    setRetryError(null);
+    try {
+      await api.retryTranscription(memory.audioAssetId);
+      onRetried?.();
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : "Couldn't retry the transcription.");
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -118,11 +144,32 @@ export function MemoryCard({ memory, onOptionSelect, availableChapters }: Memory
         </div>
       )}
 
-      {memory.transcription && (
+      {memory.transcription ? (
         <div className="mt-4 pt-4 border-t border-border">
           <p className="text-[10px] font-medium uppercase tracking-[2px] text-muted-foreground mb-2">Transcription</p>
           <p className="text-sm text-foreground leading-relaxed">&ldquo;{memory.transcription}&rdquo;</p>
         </div>
+      ) : memory.transcriptionStatus && memory.transcriptionStatus !== "ready" ? (
+        <div className="mt-4 pt-4 border-t border-border flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            {TRANSCRIPTION_STATUS_LABEL[memory.transcriptionStatus] ?? "Transcribing…"}
+          </p>
+          {(memory.transcriptionStatus === "failed" || memory.transcriptionStatus === "stalled") && (
+            <button
+              type="button"
+              onClick={handleRetry}
+              disabled={retrying}
+              className="text-xs font-medium text-accent hover:opacity-80 transition-opacity cursor-pointer disabled:opacity-50"
+            >
+              {retrying ? "Retrying…" : "Retry"}
+            </button>
+          )}
+        </div>
+      ) : null}
+      {retryError && (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          {retryError}
+        </p>
       )}
     </article>
   );

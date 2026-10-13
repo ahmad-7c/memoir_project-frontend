@@ -25,6 +25,20 @@
   --paper: oklch(97% 0.012 92); /* #f8f5ec -- defined, rarely used */
   --destructive: oklch(53% 0.14 28); /* #ae453b */
 
+  /*
+   * The one accent. Defined once here and referenced only as a token --
+   * never written as a literal hex in a component.
+   *
+   * Measured, not assumed:
+   *   cream (--background #fafaf6) text on an accent panel : 10.18:1
+   *   accent text on cream                                  : 10.18:1
+   *   accent text on --card                                 : 10.57:1
+   *   accent text on --secondary                            : 9.13:1
+   * All pass WCAG AA for normal text (4.5:1); all also clear AAA (7:1).
+   */
+  --accent: oklch(0.38 0.115 15); /* #73202e */
+  --accent-foreground: oklch(98.5% 0.005 105); /* cream, for text on the accent panel */
+
   /* Hero photo overlay gradients -- all low-opacity near-black-green, never
      pure black. */
   --hero-shade: oklch(23% 0.03 146 / 0.7);
@@ -64,6 +78,8 @@
   --color-hero-foreground: var(--hero-foreground);
   --color-paper: var(--paper);
   --color-destructive: var(--destructive);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
   /* Radius scale as shipped: note --radius-xl equals --radius-lg (8px),
      not Tailwind's default 12px -- both are overridden here deliberately. */
@@ -108,8 +124,9 @@ body {
   color: var(--primary-foreground);
 }
 
+/* The focus ring is accent everywhere, per the accent spec. */
 :focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

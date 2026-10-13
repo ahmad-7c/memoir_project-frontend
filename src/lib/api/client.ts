@@ -256,6 +256,14 @@ export interface Participant {
   first_opened_at: string | null;
 }
 
+export interface SharePreview {
+  subject_name: string;
+  cover_image_url: string | null;
+  subject_is_living: boolean;
+  subject_born_on: string | null;
+  subject_died_on: string | null;
+}
+
 export interface SharedMemoirFull {
   id: string;
   subject_name: string;
@@ -373,6 +381,21 @@ export const api = {
     return json.data || json;
   },
 
+  // Owner-only retry for a transcription that failed or stalled (bounded at
+  // 3 attempts server-side). Keyed by media_asset_id, not memory_id -- one
+  // memory can carry several audio assets in principle, each transcribed
+  // independently.
+  async retryTranscription(mediaAssetId: string) {
+    const res = await apiFetch(`/api/transcript/${mediaAssetId}/retry`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Couldn't retry the transcription"));
+    }
+    return res.json().catch(() => ({}));
+  },
+
   // Memory
   // 1. ADD THIS: To check if the user has an active memoir during login
   async getUserMemoirs() {
@@ -397,6 +420,25 @@ export const api = {
 
     const data = await res.json();
     return Array.isArray(data) ? data : data.data || [];
+  },
+
+  // One memoir, scoped by id -- including `status` (draft/published) and a
+  // resolved `cover_image_url`. Every workspace route is scoped to a single
+  // memoir, and before this existed those screens fetched the whole list and
+  // filtered client-side, which verified ownership of nothing in particular.
+  // A 404 here means "not yours or not there" -- the backend deliberately
+  // does not distinguish them.
+  async getMemoir(memoirId: string): Promise<OwnerMemoirSummary & { status: "draft" | "published" }> {
+    const res = await apiFetch(`/api/memoirs/${memoirId}`, { method: "GET" });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      const err = new Error(parseErrorDetail(errData, "Failed to load this memoir")) as Error & {
+        status?: number;
+      };
+      err.status = res.status;
+      throw err;
+    }
+    return (await res.json()).data;
   },
 
   // 2. FIX THIS: Remove the duplicate/crashing !res.ok block
@@ -427,6 +469,40 @@ export const api = {
       throw new Error(parseErrorDetail(errData, "Failed to delete memory"));
     }
     return res.json();
+  },
+
+  // Partial update of a memory. This is what lets the capture flow save the
+  // author's words BEFORE any upload starts: create with the text, then
+  // attach each file to the same memory as it finishes uploading.
+  //
+  // `media_asset_ids` is ADDITIVE server-side -- it attaches and never
+  // detaches -- so sending one new id does not disturb what is already there.
+  async updateMemory(
+    memoirId: string,
+    memoryId: string,
+    patch: {
+      title?: string;
+      body_text?: string;
+      status?: "draft" | "submitted";
+      occurred_start?: string;
+      occurred_end?: string;
+      occurred_precision?: "day" | "month" | "year" | "decade";
+      media_asset_ids?: string[];
+    },
+  ) {
+    const res = await apiFetch(
+      `/api/memories/memoirs/${memoirId}/memories/${memoryId}`,
+      { method: "PATCH", body: JSON.stringify(patch) },
+    );
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      const err = new Error(parseErrorDetail(errData, "Failed to save this memory")) as Error & {
+        status?: number;
+      };
+      err.status = res.status;
+      throw err;
+    }
+    return (await res.json()).data;
   },
 
   // Presigned Url for object storage storing
@@ -672,6 +748,24 @@ export const api = {
       throw new Error(parseErrorDetail(errData, "Failed to revoke the share link"));
     }
     return res.json();
+  },
+
+  // The only share route a reader can call with no credential at all --
+  // who this memoir is about, and their photo, so the password form isn't
+  // the first thing they see. See SharePreviewResponse on the backend for
+  // why this field list is a hard boundary and not just "whatever's handy".
+  async getSharePreview(token: string): Promise<SharePreview> {
+    const res = await apiFetch(`/api/share/${token}/preview`, { method: "GET" });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      const err = new Error(parseErrorDetail(errData, "This link no longer works.")) as Error & {
+        status?: number;
+      };
+      err.status = res.status;
+      throw err;
+    }
+    const json = await res.json();
+    return json.data || json;
   },
 
   // Reader identifies with name + the password the owner shared personally.
@@ -1009,6 +1103,27 @@ export const api = {
       },
     );
     if (!res.ok) throw new Error("Failed to rename chapter");
+    return (await res.json()).data;
+  },
+
+  // Same endpoint as renameChapter, but for either field. The backend's
+  // ChapterUpdateRequest accepts `title` and/or `summary`, and only the keys
+  // sent are written -- so this can rewrite a summary without disturbing the
+  // title. renameChapter is kept as the narrower, more readable call for the
+  // inline-rename control, which is the common case.
+  async updateChapter(
+    memoirId: string,
+    chapterId: string,
+    patch: { title?: string; summary?: string },
+  ) {
+    const res = await apiFetch(`/api/memoirs/${memoirId}/chapters/${chapterId}`, {
+      method: "PUT",
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) {
+      const errData: ApiErrorResponse = await res.json().catch(() => ({}));
+      throw new Error(parseErrorDetail(errData, "Failed to update chapter"));
+    }
     return (await res.json()).data;
   },
 

@@ -2,56 +2,42 @@
 
 import { ChangeEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { Camera } from "lucide-react";
 import { api } from "@/lib/api/client";
 import { uploadMediaAsset } from "@/hooks/useMediaUpload";
 import { Button } from "@/components/ui/Button";
 import { Label } from "@/components/ui/Label";
 import { Input } from "@/components/ui/Input";
-
-interface PendingMemoirDraft {
-  subject_name?: string;
-  subject_born_on?: string | null;
-  subject_died_on?: string | null;
-  subject_is_living?: boolean;
-  description?: string;
-}
+import { LeafMark } from "@/components/Logo";
+import { readOnboardingDraft, clearOnboardingDraft } from "@/features/onboarding/draft";
 
 /**
- * The first deliberate, named moment in this product: creating the memoir
- * itself. Previously this happened silently in the background right after
- * signup/login, with the owner never seeing it happen. Typing a dead
- * parent's name deserves a screen of its own, not a loading spinner on the
- * way to a dashboard.
+ * §4. A memoir is mandatory and immediate: after the account exists, this is
+ * where the user goes -- not the workspace, not the profile. An
+ * authenticated user with no memoir is always sent here.
  *
- * Name and dates only -- nothing else. If onboarding already collected
- * these (features/onboarding/MemorySubjectSelection.tsx), they're
- * pre-filled here rather than asked again; a user who skipped onboarding
- * (e.g. logged in directly) still gets a blank, working form.
+ * Deliberately bare: no top bar, no tabs, no navigation. One question that
+ * matters (their name), two that help (dates), one that can wait (a
+ * photograph), and one button. Typing a dead parent's name deserves a screen
+ * of its own.
  */
-export default function FirstMemoirScreen() {
+export default function NewMemoirPage() {
   const router = useRouter();
 
-  const draft: PendingMemoirDraft = (() => {
-    if (typeof window === "undefined") return {};
-    try {
-      const raw = localStorage.getItem("pending_memoir");
-      return raw ? JSON.parse(raw) : {};
-    } catch {
-      return {};
-    }
-  })();
-
-  const [name, setName] = useState(draft.subject_name || "");
-  const [dob, setDob] = useState(draft.subject_born_on || "");
-  const [dod, setDod] = useState(draft.subject_died_on || "");
-  const [isAlive, setIsAlive] = useState(draft.subject_is_living ?? false);
+  // Pre-filled from onboarding step 2 when they came through /begin; blank
+  // for an existing owner adding a second memoir from their profile.
+  const [name, setName] = useState(() => readOnboardingDraft().subjectName ?? "");
+  const [dob, setDob] = useState("");
+  const [dod, setDod] = useState("");
+  const [isAlive, setIsAlive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date().toISOString().slice(0, 10);
 
   const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,11 +45,6 @@ export default function FirstMemoirScreen() {
     setPhotoFile(file);
     setPhotoPreview(URL.createObjectURL(file));
   };
-
-  // Same real-world constraint as the onboarding version of this form: no
-  // future birth dates, and a date of passing has to fall between birth and
-  // today.
-  const today = new Date().toISOString().slice(0, 10);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,24 +54,16 @@ export default function FirstMemoirScreen() {
       setError("Their name is how this memoir begins. Please enter it.");
       return;
     }
-    if (!dob.trim()) {
-      setError("Please add a date of birth.");
-      return;
-    }
-    if (dob > today) {
+    if (dob && dob > today) {
       setError("Date of birth can't be in the future.");
       return;
     }
-    if (!isAlive && !dod.trim()) {
-      setError('Please add a date of passing, or check "Still with us".');
-      return;
-    }
-    if (!isAlive && dod.trim()) {
+    if (!isAlive && dod) {
       if (dod > today) {
         setError("Date of passing can't be in the future.");
         return;
       }
-      if (dod < dob) {
+      if (dob && dod < dob) {
         setError("Date of passing can't be before their date of birth.");
         return;
       }
@@ -98,60 +71,75 @@ export default function FirstMemoirScreen() {
 
     setCreating(true);
     try {
+      const draft = readOnboardingDraft();
       const created = await api.createMemoir({
         subject_name: name.trim(),
-        subject_born_on: dob.trim(),
-        subject_died_on: isAlive ? undefined : dod.trim(),
+        subject_born_on: dob.trim() || undefined,
+        subject_died_on: isAlive ? undefined : dod.trim() || undefined,
         subject_is_living: isAlive,
-        description: draft.description,
+        relationship: draft.relationship,
       });
       const memoir = created.data || created;
 
-      // Best-effort: the memoir itself is already created at this point, so
-      // a cover-photo upload failure (network blip, storage hiccup) should
-      // never strand the owner here -- they can always add one later from
-      // /memories, exactly the same upload path.
+      // Best-effort: the memoir exists by now, so a failed photo upload must
+      // not strand them here. They can add one later from the workspace, by
+      // the same upload path.
       if (photoFile && memoir?.id) {
         try {
-          const mediaId = await uploadMediaAsset(memoir.id, photoFile, photoFile.name, photoFile.type, "photo");
-          const coverUrl = await api.setMemoirCover(memoir.id, mediaId);
-          memoir.cover_image_url = coverUrl;
+          const mediaId = await uploadMediaAsset(
+            memoir.id,
+            photoFile,
+            photoFile.name,
+            photoFile.type,
+            "photo",
+          );
+          await api.setMemoirCover(memoir.id, mediaId);
         } catch (photoErr) {
           console.error("Could not set the cover photo", photoErr);
         }
       }
 
-      localStorage.setItem("active_memoir", JSON.stringify(memoir));
-      localStorage.removeItem("pending_memoir");
-      router.push("/memories");
+      // Only now: the account exists AND the onboarding answers have been
+      // persisted into a real memoir. Clearing any earlier would lose them
+      // on a failure between signup and creation.
+      clearOnboardingDraft();
+
+      router.replace(`/memoirs/${memoir.id}/memories`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not create this memoir. Please try again.");
+      setError(
+        err instanceof Error ? err.message : "Could not create this memoir. Please try again.",
+      );
       setCreating(false);
     }
   };
 
   return (
-    <section className="min-h-screen bg-background flex items-center justify-center px-6 py-20">
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, ease: [0.22, 0.61, 0.36, 1] }}
-        className="w-full max-w-110 text-center"
-      >
-        <h1 className="font-serif text-3xl text-foreground leading-snug mb-3">Create your first memoir</h1>
+    <main className="min-h-screen flex items-center justify-center px-6 py-20">
+      <div className="w-full max-w-md text-center">
+        <div className="flex items-center justify-center gap-2 font-serif text-xl text-foreground mb-10">
+          <LeafMark className="w-5 h-5 text-accent" />
+          The Family Memoir
+        </div>
+
+        <h1 className="font-serif text-4xl text-foreground leading-snug mb-3">
+          Who is this memoir for?
+        </h1>
         <p className="text-sm text-muted-foreground mb-12 max-w-sm mx-auto">
           This is where their story will live. Everything else can be added once it exists.
         </p>
 
         {error && (
-          <div role="alert" className="mb-6 flex items-start gap-3 text-left rounded-md border border-border bg-card px-5 py-4">
+          <div
+            role="alert"
+            className="mb-6 flex items-start gap-3 text-left rounded-md border border-border bg-card px-5 py-4"
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 mt-2" aria-hidden="true" />
             <p className="text-sm text-foreground">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 text-left">
-          <div className="flex justify-center mb-2">
+          <div className="flex flex-col items-center gap-2 mb-2">
             <input
               ref={photoInputRef}
               type="file"
@@ -162,25 +150,25 @@ export default function FirstMemoirScreen() {
             <button
               type="button"
               onClick={() => photoInputRef.current?.click()}
-              aria-label="Add a cover photo"
-              className="relative w-20 h-20 rounded-full bg-secondary overflow-hidden flex items-center justify-center cursor-pointer border border-border hover:border-foreground/30 transition-colors"
+              aria-label="Add a photograph of them"
+              className="relative w-24 h-24 rounded-full bg-secondary overflow-hidden flex items-center justify-center cursor-pointer border border-border hover:border-accent transition-colors"
             >
               {photoPreview ? (
-                /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview, not an optimizable remote asset */
+                /* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */
                 <img src={photoPreview} alt="" className="w-full h-full object-cover" />
               ) : (
-                <Camera size={18} className="text-muted-foreground" />
+                <Camera size={20} className="text-muted-foreground" />
               )}
             </button>
+            <p className="text-xs text-muted-foreground">
+              {photoPreview ? "Looking good." : "A photograph of them (optional)."}
+            </p>
           </div>
-          <p className="text-center text-xs text-muted-foreground -mt-4">
-            {photoPreview ? "Looking good." : "Add a photo of them (optional)."}
-          </p>
 
           <div>
-            <Label htmlFor="first-memoir-name">Their name</Label>
+            <Label htmlFor="new-memoir-name">Their name</Label>
             <Input
-              id="first-memoir-name"
+              id="new-memoir-name"
               type="text"
               value={name}
               onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
@@ -191,9 +179,9 @@ export default function FirstMemoirScreen() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="first-memoir-dob">Born</Label>
+              <Label htmlFor="new-memoir-dob">Born</Label>
               <Input
-                id="first-memoir-dob"
+                id="new-memoir-dob"
                 type="date"
                 value={dob}
                 max={today}
@@ -202,9 +190,9 @@ export default function FirstMemoirScreen() {
               />
             </div>
             <div>
-              <Label htmlFor="first-memoir-dod">Passed</Label>
+              <Label htmlFor="new-memoir-dod">Passed</Label>
               <Input
-                id="first-memoir-dod"
+                id="new-memoir-dod"
                 type="date"
                 value={dod}
                 min={dob || undefined}
@@ -224,7 +212,7 @@ export default function FirstMemoirScreen() {
                 setIsAlive(e.target.checked);
                 if (e.target.checked) setDod("");
               }}
-              className="w-4.5 h-4.5 rounded-sm border-border accent-primary cursor-pointer"
+              className="w-4.5 h-4.5 rounded-sm border-border accent-accent cursor-pointer"
             />
             Still with us
           </label>
@@ -233,7 +221,7 @@ export default function FirstMemoirScreen() {
             {creating ? "Creating…" : "Create this memoir"}
           </Button>
         </form>
-      </motion.div>
-    </section>
+      </div>
+    </main>
   );
 }

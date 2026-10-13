@@ -279,8 +279,8 @@ export function NarrativePanel({ memoirId, open, onClose }: NarrativePanelProps)
                   <div className="pt-2 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                     <p className="text-xs text-muted-foreground max-w-xs">Publishing requires reviewing this narrative first.</p>
                     {reviewed ? (
-                      <span className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-sm border border-calm/50 text-muted-foreground text-sm font-medium">
-                        <Check size={14} />
+                      <span className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-sm border border-accent/50 text-muted-foreground text-sm font-medium">
+                        <Check size={14} className="text-accent" />
                         Reviewed
                       </span>
                     ) : (
