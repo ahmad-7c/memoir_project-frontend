@@ -11,6 +11,7 @@ order, it belongs in `src/features/` instead.
 | Path | Role | Backend equivalent |
 | --- | --- | --- |
 | `api/client.ts` | The **only** module that calls `fetch`. Base URL, timeouts, error normalization, response validation. | `integrations/llm_client.py` |
+| `api/origin.ts` | Normalizes the configured API URL and derives its origin for browser requests and CSP. | `core/config.py` |
 | `api/errors.ts` | The `ApiError` taxonomy: `network`, `http`, `contract`. | — |
 | `config/env.ts` | Zod-validated environment variables. Fails at boot, not at runtime. | `core/` |
 | `query/client.ts` | TanStack Query defaults: stale time, retry policy. | — |

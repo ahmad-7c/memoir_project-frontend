@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { resolveApiOrigin } from "@/lib/api/origin";
 
 /**
  * Attaches the full security-header set to every response this app serves.
@@ -111,11 +112,13 @@ export function proxy(request: NextRequest) {
       return "";
     }
   })();
+  const apiOrigin = resolveApiOrigin(process.env.NEXT_PUBLIC_API_BASE_URL);
 
   const csp = [
     "default-src 'self'",
     `img-src 'self' blob: data:${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     `media-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
+    `connect-src 'self' ${apiOrigin}${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     "font-src 'self' fonts.gstatic.com",
     // Both carry 'unsafe-inline' for the same reason: the App Router's own
     // inline hydration/RSC-payload scripts and this app's per-instance

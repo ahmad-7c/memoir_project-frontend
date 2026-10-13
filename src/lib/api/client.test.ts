@@ -25,7 +25,8 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, parseErrorDetail, resolveApiBaseUrl } from "./client";
+import { api, parseErrorDetail } from "./client";
+import { resolveApiBaseUrl, resolveApiOrigin } from "./origin";
 
 /** Minimal shape satisfying the client's internal response handling. */
 function jsonResponse(
@@ -146,6 +147,11 @@ describe("resolveApiBaseUrl", () => {
   it("keeps explicit schemes and uses http for loopback", () => {
     expect(resolveApiBaseUrl("https://api.example.com/")).toBe("https://api.example.com");
     expect(resolveApiBaseUrl(" localhost:8000/ ")).toBe("http://localhost:8000");
+  });
+
+  it("extracts only the API origin for Content Security Policy", () => {
+    expect(resolveApiOrigin(" https://api.example.com/v1/ ")).toBe("https://api.example.com");
+    expect(resolveApiOrigin(" api.example.com ")).toBe("https://api.example.com");
   });
 
   it("does not silently use localhost in a production build without configuration", () => {

@@ -6,37 +6,8 @@ import {
   ProposalListResponseSchema,
 } from "@/features/dashboard/types/organization";
 
+import { resolveApiBaseUrl } from "@/lib/api/origin";
 import { z } from "zod";
-
-/**
- * Coerces NEXT_PUBLIC_API_BASE_URL into something `fetch` can actually use.
- *
- * Production shipped with this variable set to
- * " memoir-backend1.<...>.cs.amazonlightsail.com" -- a leading space and no
- * scheme. `fetch(" host/api/auth/signup")` is not an absolute URL, so the
- * browser resolved it against the Vercel origin and the request died as a
- * bare "Failed to fetch" on every call, including signup. Nothing in the
- * error named the URL, so it read as "the backend is down" when the backend
- * was fine and had simply never been contacted.
- *
- * The value is inlined at build time, so a bad one cannot be corrected
- * without a rebuild -- which is exactly why it is worth repairing here
- * rather than trusting the dashboard to be right.
- */
-export function resolveApiBaseUrl(raw: string | undefined): string {
-  const value = (raw ?? "").trim().replace(/\/+$/, "");
-  if (!value) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("NEXT_PUBLIC_API_BASE_URL must be set for production builds.");
-    }
-    return "http://localhost:8000";
-  }
-  if (/^https?:\/\//i.test(value)) return value;
-  // Bare host: assume https, except loopback, which is plain http in dev.
-  const host = value.split("/", 1)[0].split(":", 1)[0];
-  const isLocal = host === "localhost" || host === "127.0.0.1" || host === "[::1]";
-  return `${isLocal ? "http" : "https"}://${value}`;
-}
 
 const API_BASE_URL = resolveApiBaseUrl(process.env.NEXT_PUBLIC_API_BASE_URL);
 
