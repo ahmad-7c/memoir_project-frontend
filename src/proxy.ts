@@ -2,8 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Generates a per-request CSP nonce and attaches the full security-header
- * set to every response this app serves.
+ * Attaches the full security-header set to every response this app serves.
  *
  * Named `proxy` and filed at src/proxy.ts, not src/middleware.ts -- this
  * Next.js version has renamed the file convention (middleware.ts is
@@ -11,16 +10,26 @@ import type { NextRequest } from "next/server";
  * for backwards compatibility, but a brand-new file has no reason to start
  * on a deprecated name.
  *
- * The nonce exists because the App Router injects its own inline hydration
- * bootstrap scripts -- a strict `script-src 'self'` with no 'unsafe-inline'
- * would otherwise break the framework itself, not just this app's one
- * hand-written inline script (the anti-flash theme script in layout.tsx,
- * which reads this same nonce back via `x-nonce` / `next/headers`). Next.js
- * detects a nonce in this header and automatically applies it to its own
- * inline scripts; this file is responsible for everything else.
- *
- * `style-src` includes 'unsafe-inline' as a deliberate, documented
- * exception -- see the note below. Nothing else does.
+ * script-src deliberately does NOT use a nonce. A nonce-based CSP only
+ * works for pages Next.js renders per-request -- per Next's own CSP docs,
+ * "Static pages are generated at build time, when no request or response
+ * headers exist, so no nonce can be injected." Almost every route in this
+ * app (/begin, /signin, /profile, /memories, /chapters, /memoir,
+ * /memoirs/new, ...) is intentionally static for performance. An earlier
+ * version of this file generated a per-request nonce and set it in the CSP
+ * header anyway; Next silently never attached it to any script tag on
+ * those static pages, `strict-dynamic` then trusted nothing, and the
+ * result was that literally no JavaScript executed anywhere in the app in
+ * production -- every form fell back to a native HTML submit, which is
+ * what "the Continue button doesn't do anything" turned out to be. Forcing
+ * every page into dynamic rendering just to support nonces would be a much
+ * larger change than a CSP fix warrants, so `'unsafe-inline'` is the
+ * considered trade here, same as `style-src` already makes below -- it
+ * still blocks every externally-hosted or attacker-injected `<script
+ * src="...">`, which is the realistic threat this guards against; the app
+ * has no `dangerouslySetInnerHTML` anywhere (confirmed by grep) so there's
+ * no first-party reflected-HTML surface for an inline-script payload to
+ * land in to begin with.
  */
 /** Owner session cookie, set httpOnly by the backend's /api/auth endpoints. */
 const ACCESS_TOKEN_COOKIE = "access_token";
@@ -94,8 +103,6 @@ function routeGuard(request: NextRequest): NextResponse | null {
 }
 
 export function proxy(request: NextRequest) {
-  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
-
   const supabaseOrigin = (() => {
     try {
       const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -110,21 +117,21 @@ export function proxy(request: NextRequest) {
     `img-src 'self' blob: data:${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     `media-src 'self'${supabaseOrigin ? ` ${supabaseOrigin}` : ""}`,
     "font-src 'self' fonts.gstatic.com",
-    // 'unsafe-inline' here only, not for script-src: this app sets a
-    // number of per-instance, JS-computed inline `style` values (a reading
-    // progress bar's width, a parallax transform, per-photo duotone
-    // overlay opacity) that have no static-class equivalent and no
-    // first-party nonce mechanism the way Next's own inline scripts have.
-    // style-src 'unsafe-inline' cannot execute script on its own -- the
-    // realistic exposure it accepts is CSS-based UI redress, not code
-    // execution -- so this is a considered trade, not an oversight.
+    // Both carry 'unsafe-inline' for the same reason: the App Router's own
+    // inline hydration/RSC-payload scripts and this app's per-instance
+    // inline styles (a reading progress bar's width, a parallax transform,
+    // a per-photo duotone overlay opacity -- values with no static-class
+    // equivalent) have no nonce on this app's mostly-static routes (see the
+    // file-level comment above). 'unsafe-inline' still blocks every
+    // externally-hosted or injected <script src="..."> / <link>, which is
+    // the realistic protection script-src/style-src provide here.
     "style-src 'self' 'unsafe-inline' fonts.googleapis.com",
     // 'unsafe-eval' is dev-only: React's development build uses eval() for
     // debugging features (reconstructing call stacks across HMR
     // boundaries) that it never uses in production -- Next.js's own CSP
     // guidance calls this out explicitly. Gating on NODE_ENV keeps the
     // production policy exactly as specified, with nothing relaxed.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${
+    `script-src 'self' 'unsafe-inline'${
       process.env.NODE_ENV !== "production" ? " 'unsafe-eval'" : ""
     }`,
     "frame-ancestors 'none'",
@@ -132,10 +139,7 @@ export function proxy(request: NextRequest) {
     "base-uri 'self'",
   ].join("; ");
 
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set("x-nonce", nonce);
-
-  const response = routeGuard(request) ?? NextResponse.next({ request: { headers: requestHeaders } });
+  const response = routeGuard(request) ?? NextResponse.next();
 
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");

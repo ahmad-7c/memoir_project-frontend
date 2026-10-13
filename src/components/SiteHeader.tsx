@@ -14,6 +14,9 @@ export default function SiteHeader() {
         <a href="#sample-memoir" className="hidden sm:inline text-xs text-muted-foreground hover:text-accent transition-colors">
           A glimpse inside
         </a>
+        <Link href="/signin" className="hidden sm:inline text-xs text-muted-foreground hover:text-accent transition-colors">
+          Sign in
+        </Link>
         <Button href="/begin">Begin</Button>
       </nav>
     </header>
