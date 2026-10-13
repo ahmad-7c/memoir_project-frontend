@@ -25,7 +25,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, parseErrorDetail } from "./client";
+import { api, parseErrorDetail, resolveApiBaseUrl } from "./client";
 
 /** Minimal shape satisfying the client's internal response handling. */
 function jsonResponse(
@@ -133,6 +133,29 @@ describe("parseErrorDetail", () => {
 
     expect(detail).toContain("/app/src/main.py");
     expect(detail).toContain("KeyError");
+  });
+});
+
+describe("resolveApiBaseUrl", () => {
+  it("trims whitespace and adds https to a production hostname", () => {
+    expect(resolveApiBaseUrl(" memoir-api.example.com/ ")).toBe(
+      "https://memoir-api.example.com",
+    );
+  });
+
+  it("keeps explicit schemes and uses http for loopback", () => {
+    expect(resolveApiBaseUrl("https://api.example.com/")).toBe("https://api.example.com");
+    expect(resolveApiBaseUrl(" localhost:8000/ ")).toBe("http://localhost:8000");
+  });
+
+  it("does not silently use localhost in a production build without configuration", () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      expect(() => resolveApiBaseUrl(undefined)).toThrow("NEXT_PUBLIC_API_BASE_URL");
+    } finally {
+      vi.stubEnv("NODE_ENV", originalNodeEnv);
+    }
   });
 });
 
